@@ -1,6 +1,9 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect } from "react"
+import { useForm, Controller } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import * as z from "zod"
 import {
   Dialog,
   DialogContent,
@@ -19,9 +22,39 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { zonas, tiposPropiedad } from "@/lib/data"
+import { provinciasEcuador, tiposPropiedad } from "@/lib/data"
 import type { Property, PropertyStatus, PropertyType } from "@/lib/types"
-import { MapPin, Upload } from "lucide-react"
+import { Upload, X } from "lucide-react"
+import { MapPreview } from "./map-preview"
+import { uploadImageToSupabase } from "@/lib/supabaseClient"
+
+const propertySchema = z.object({
+  nombre: z.string().min(3, "El nombre debe tener al menos 3 caracteres"),
+  precio: z.number().min(0, "El precio debe ser mayor a 0"),
+  direccion: z.string().optional(),
+  provincia: z.string().min(1, "Selecciona una provincia"),
+  ciudad: z.string().min(1, "Selecciona una ciudad"),
+  tipo: z.enum(["apartment", "house", "penthouse", "loft"]),
+  estado: z.enum(["disponible", "reservada", "vendida"]),
+  areaTotales: z.number().nonnegative().optional(),
+  areaConstruccion: z.number().nonnegative().optional(),
+  habitaciones: z.number().nonnegative().optional(),
+  banos: z.number().nonnegative().optional(),
+  antiguedadEsNuevo: z.boolean(),
+  antiguedadAnos: z.number().nonnegative().optional(),
+  descripcion: z.string().optional(),
+  garaje: z.boolean(),
+  piscina: z.boolean(),
+  patio: z.boolean(),
+  seguridadPrivada: z.boolean(),
+  balcon: z.boolean(),
+  dospisos: z.boolean(),
+  trespisos: z.boolean(),
+  mapsUrl: z.string().optional(),
+  imagenes: z.array(z.string()),
+})
+
+type PropertyFormData = z.infer<typeof propertySchema>
 
 interface PropertyModalProps {
   open: boolean
@@ -36,104 +69,165 @@ export function PropertyModal({
   property,
   onSave,
 }: PropertyModalProps) {
-  const [nombre, setNombre] = useState("")
-  const [precio, setPrecio] = useState("")
-  const [direccion, setDireccion] = useState("")
-  const [zona, setZona] = useState("")
-  const [tipo, setTipo] = useState<PropertyType | "">("")
-  const [estado, setEstado] = useState<PropertyStatus>("disponible")
-  const [areaTotales, setAreaTotales] = useState("")
-  const [areaConstruccion, setAreaConstruccion] = useState("")
-  const [habitaciones, setHabitaciones] = useState("")
-  const [banos, setBanos] = useState("")
-  const [antiguedad, setAntiguedad] = useState("")
-  const [descripcionBreve, setDescripcionBreve] = useState("")
-  const [descripcionLarga, setDescripcionLarga] = useState("")
-  const [garaje, setGaraje] = useState(false)
-  const [piscina, setPiscina] = useState(false)
-  const [patio, setPatio] = useState(false)
-  const [seguridadPrivada, setSeguridadPrivada] = useState(false)
-  const [balcon, setBalcon] = useState(false)
-  const [latitud, setLatitud] = useState("4.7110")
-  const [longitud, setLongitud] = useState("-74.0721")
+  const {
+    register,
+    control,
+    handleSubmit,
+    watch,
+    reset,
+    setValue,
+    formState: { errors },
+  } = useForm<PropertyFormData>({
+    resolver: zodResolver(propertySchema),
+    defaultValues: {
+      nombre: "",
+      precio: undefined,
+      direccion: "",
+      provincia: "",
+      ciudad: "",
+      tipo: "house",
+      estado: "disponible",
+      areaTotales: undefined,
+      areaConstruccion: undefined,
+      habitaciones: undefined,
+      banos: undefined,
+      antiguedadEsNuevo: false,
+      antiguedadAnos: undefined,
+      descripcion: "",
+      garaje: false,
+      piscina: false,
+      patio: false,
+      seguridadPrivada: false,
+      balcon: false,
+      dospisos: false,
+      trespisos: false,
+      mapsUrl: "",
+      imagenes: [],
+    },
+  })
+
+  const provincia = watch("provincia")
+  const antiguedadEsNuevo = watch("antiguedadEsNuevo")
+  const imagenes = watch("imagenes")
+  const mapsUrl = watch("mapsUrl")
+
+  const ciudadesDisponibles = provincia
+    ? (provinciasEcuador[provincia as keyof typeof provinciasEcuador] || [])
+    : []
 
   useEffect(() => {
     if (property) {
-      setNombre(property.nombre)
-      setPrecio(property.precio.toString())
-      setDireccion(property.direccion)
-      setZona(property.zona)
-      setTipo(property.tipo)
-      setEstado(property.estado)
-      setAreaTotales(property.areaTotales.toString())
-      setAreaConstruccion(property.areaConstruccion.toString())
-      setHabitaciones(property.habitaciones.toString())
-      setBanos(property.banos.toString())
-      setAntiguedad(property.antiguedad)
-      setDescripcionBreve(property.descripcionBreve)
-      setDescripcionLarga(property.descripcionLarga)
-      setGaraje(property.caracteristicas.garaje)
-      setPiscina(property.caracteristicas.piscina)
-      setPatio(property.caracteristicas.patio)
-      setSeguridadPrivada(property.caracteristicas.seguridadPrivada)
-      setBalcon(property.caracteristicas.balcon)
-      setLatitud(property.latitud)
-      setLongitud(property.longitud)
+      reset({
+        nombre: property.nombre,
+        precio: property.precio,
+        direccion: property.direccion,
+        provincia: property.provincia,
+        ciudad: property.ciudad,
+        tipo: property.tipo,
+        estado: property.estado,
+        areaTotales: property.areaTotales,
+        areaConstruccion: property.areaConstruccion,
+        habitaciones: property.habitaciones,
+        banos: property.banos,
+        antiguedadEsNuevo: property.antiguedad.esNuevo,
+        antiguedadAnos: property.antiguedad.anos,
+        descripcion: property.descripcion,
+        garaje: property.caracteristicas.garaje,
+        piscina: property.caracteristicas.piscina,
+        patio: property.caracteristicas.patio,
+        seguridadPrivada: property.caracteristicas.seguridadPrivada,
+        balcon: property.caracteristicas.balcon,
+        dospisos: property.caracteristicas.dospisos,
+        trespisos: property.caracteristicas.trespisos,
+        mapsUrl: property.mapsUrl,
+        imagenes: property.imagenes,
+      })
     } else {
-      setNombre("")
-      setPrecio("")
-      setDireccion("")
-      setZona("")
-      setTipo("")
-      setEstado("disponible")
-      setAreaTotales("")
-      setAreaConstruccion("")
-      setHabitaciones("")
-      setBanos("")
-      setAntiguedad("")
-      setDescripcionBreve("")
-      setDescripcionLarga("")
-      setGaraje(false)
-      setPiscina(false)
-      setPatio(false)
-      setSeguridadPrivada(false)
-      setBalcon(false)
-      setLatitud("4.7110")
-      setLongitud("-74.0721")
+      reset({
+        nombre: "",
+        precio: undefined,
+        direccion: "",
+        provincia: "",
+        ciudad: "",
+        tipo: "house",
+        estado: "disponible",
+        areaTotales: undefined,
+        areaConstruccion: undefined,
+        habitaciones: undefined,
+        banos: undefined,
+        antiguedadEsNuevo: false,
+        antiguedadAnos: undefined,
+        descripcion: "",
+        garaje: false,
+        piscina: false,
+        patio: false,
+        seguridadPrivada: false,
+        balcon: false,
+        dospisos: false,
+        trespisos: false,
+        mapsUrl: "",
+        imagenes: [],
+      })
     }
-  }, [property, open])
+  }, [property, open, reset])
 
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
+  const onSubmit = (formData: PropertyFormData) => {
     onSave({
-      nombre,
-      descripcionBreve,
-      descripcionLarga,
-      precio: parseFloat(precio) || 0,
-      tipo: (tipo || "house") as PropertyType,
-      zona,
-      habitaciones: parseInt(habitaciones) || 0,
-      banos: parseInt(banos) || 0,
-      areaTotales: parseFloat(areaTotales) || 0,
-      areaConstruccion: parseFloat(areaConstruccion) || 0,
-      antiguedad,
-      direccion,
-      imagenes: property ? property.imagenes : ["/images/casa-moderna.jpg"],
-      caracteristicas: {
-        garaje,
-        piscina,
-        patio,
-        seguridadPrivada,
-        balcon,
+      nombre: formData.nombre,
+      descripcion: formData.descripcion || "",
+      precio: formData.precio || 0,
+      tipo: formData.tipo as PropertyType,
+      provincia: formData.provincia,
+      ciudad: formData.ciudad,
+      habitaciones: formData.habitaciones || 0,
+      banos: formData.banos || 0,
+      areaTotales: formData.areaTotales || 0,
+      areaConstruccion: formData.areaConstruccion || 0,
+      antiguedad: {
+        esNuevo: formData.antiguedadEsNuevo,
+        anos: formData.antiguedadAnos || 0,
       },
-      estado,
-      fecha: property
-        ? property.fecha
-        : new Date().toISOString().split("T")[0],
-      latitud,
-      longitud,
+      direccion: formData.direccion || "",
+      imagenes: formData.imagenes,
+      caracteristicas: {
+        garaje: formData.garaje,
+        piscina: formData.piscina,
+        patio: formData.patio,
+        seguridadPrivada: formData.seguridadPrivada,
+        balcon: formData.balcon,
+        dospisos: formData.dospisos,
+        trespisos: formData.trespisos,
+      },
+      estado: formData.estado as PropertyStatus,
+      fecha: property?.fecha || new Date().toISOString().split("T")[0],
+      mapsUrl: formData.mapsUrl || "",
     })
     onOpenChange(false)
+  }
+
+  const handleImageUpload = async (files: FileList) => {
+    const fileArray = Array.from(files)
+    
+    const updatedImagenes = [...imagenes]
+    
+    for (const file of fileArray) {
+      try {
+        const url = await uploadImageToSupabase(file)
+        updatedImagenes.push(url)
+      } catch (error) {
+        console.error("Error subiendo imagen:", error)
+      }
+    }
+    
+    setValue("imagenes", updatedImagenes)
+  }
+
+  const handleDragDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (e.dataTransfer.files) {
+      handleImageUpload(e.dataTransfer.files)
+    }
   }
 
   return (
@@ -144,25 +238,26 @@ export function PropertyModal({
             {property ? "Editar Propiedad" : "Agregar Nueva Propiedad"}
           </DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-          {/* Informacion General */}
+        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-6">
+          {/* Información General */}
           <div>
             <h3 className="text-lg font-bold text-foreground mb-4">
-              {"Informacion General"}
+              Información General
             </h3>
             <div className="flex flex-col gap-4">
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="titulo" className="font-semibold text-foreground">
-                    {"Titulo"}
+                  <Label htmlFor="nombre" className="font-semibold text-foreground">
+                    Título
                   </Label>
                   <Input
-                    id="titulo"
-                    value={nombre}
-                    onChange={(e) => setNombre(e.target.value)}
-                    required
+                    id="nombre"
+                    {...register("nombre")}
                     className="bg-card"
                   />
+                  {errors.nombre && (
+                    <span className="text-xs text-red-500">{errors.nombre.message}</span>
+                  )}
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <Label htmlFor="precio" className="font-semibold text-foreground">
@@ -171,40 +266,74 @@ export function PropertyModal({
                   <Input
                     id="precio"
                     type="number"
-                    value={precio}
-                    onChange={(e) => setPrecio(e.target.value)}
-                    required
+                    {...register("precio", { valueAsNumber: true })}
                     className="bg-card"
                   />
+                  {errors.precio && (
+                    <span className="text-xs text-red-500">{errors.precio.message}</span>
+                  )}
                 </div>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="direccion" className="font-semibold text-foreground">
+                  Dirección
+                </Label>
+                <Input
+                  id="direccion"
+                  {...register("direccion")}
+                  className="bg-card"
+                />
               </div>
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="direccion" className="font-semibold text-foreground">
-                    {"Direccion"}
-                  </Label>
-                  <Input
-                    id="direccion"
-                    value={direccion}
-                    onChange={(e) => setDireccion(e.target.value)}
-                    className="bg-card"
+                  <Label className="font-semibold text-foreground">Provincia</Label>
+                  <Controller
+                    name="provincia"
+                    control={control}
+                    render={({ field }) => (
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger className="bg-card">
+                          <SelectValue placeholder="Seleccionar provincia" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Object.keys(provinciasEcuador).map((prov) => (
+                            <SelectItem key={prov} value={prov}>
+                              {prov}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
                   />
+                  {errors.provincia && (
+                    <span className="text-xs text-red-500">{errors.provincia.message}</span>
+                  )}
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <Label className="font-semibold text-foreground">Zona</Label>
-                  <Select value={zona} onValueChange={setZona}>
-                    <SelectTrigger className="bg-card">
-                      <SelectValue placeholder="Seleccionar zona" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {zonas.map((z) => (
-                        <SelectItem key={z} value={z}>
-                          {z}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Label className="font-semibold text-foreground">Ciudad</Label>
+                  <Controller
+                    name="ciudad"
+                    control={control}
+                    render={({ field }) => (
+                      <Select value={field.value} onValueChange={field.onChange} disabled={!provincia}>
+                        <SelectTrigger className="bg-card">
+                          <SelectValue placeholder="Seleccionar ciudad" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {ciudadesDisponibles.map((ciudad) => (
+                            <SelectItem key={ciudad} value={ciudad}>
+                              {ciudad}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                  {errors.ciudad && (
+                    <span className="text-xs text-red-500">{errors.ciudad.message}</span>
+                  )}
                 </div>
               </div>
 
@@ -213,70 +342,74 @@ export function PropertyModal({
                   <Label className="font-semibold text-foreground">
                     Tipo de propiedad
                   </Label>
-                  <Select
-                    value={tipo}
-                    onValueChange={(v) => setTipo(v as PropertyType)}
-                  >
-                    <SelectTrigger className="bg-card">
-                      <SelectValue placeholder="Seleccionar tipo" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {tiposPropiedad.map((t) => (
-                        <SelectItem key={t.value} value={t.value}>
-                          {t.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Controller
+                    name="tipo"
+                    control={control}
+                    render={({ field }) => (
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger className="bg-card">
+                          <SelectValue placeholder="Seleccionar tipo" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {tiposPropiedad.map((t) => (
+                            <SelectItem key={t.value} value={t.value}>
+                              {t.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <Label className="font-semibold text-foreground">Estado</Label>
-                  <Select
-                    value={estado}
-                    onValueChange={(v) => setEstado(v as PropertyStatus)}
-                  >
-                    <SelectTrigger className="bg-card">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="disponible">Disponible</SelectItem>
-                      <SelectItem value="reservada">Reservada</SelectItem>
-                      <SelectItem value="vendida">Vendida</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Controller
+                    name="estado"
+                    control={control}
+                    render={({ field }) => (
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger className="bg-card">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="disponible">Disponible</SelectItem>
+                          <SelectItem value="reservada">Reservada</SelectItem>
+                          <SelectItem value="vendida">Vendida</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Detalles Tecnicos */}
+          {/* Detalles Técnicos */}
           <div>
             <h3 className="text-lg font-bold text-foreground mb-4">
-              {"Detalles Tecnicos"}
+              Detalles Técnicos
             </h3>
             <div className="flex flex-col gap-4">
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                 <div className="flex flex-col gap-1.5">
                   <Label htmlFor="areaTotales" className="font-semibold text-foreground">
-                    {"m\u00B2 totales"}
+                    m² totales
                   </Label>
                   <Input
                     id="areaTotales"
                     type="number"
-                    value={areaTotales}
-                    onChange={(e) => setAreaTotales(e.target.value)}
+                    {...register("areaTotales", { valueAsNumber: true })}
                     className="bg-card"
                   />
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <Label htmlFor="areaConstruccion" className="font-semibold text-foreground">
-                    {"m\u00B2 construccion"}
+                    m² construcción
                   </Label>
                   <Input
                     id="areaConstruccion"
                     type="number"
-                    value={areaConstruccion}
-                    onChange={(e) => setAreaConstruccion(e.target.value)}
+                    {...register("areaConstruccion", { valueAsNumber: true })}
                     className="bg-card"
                   />
                 </div>
@@ -287,8 +420,7 @@ export function PropertyModal({
                   <Input
                     id="habitaciones"
                     type="number"
-                    value={habitaciones}
-                    onChange={(e) => setHabitaciones(e.target.value)}
+                    {...register("habitaciones", { valueAsNumber: true })}
                     className="bg-card"
                   />
                 </div>
@@ -297,178 +429,165 @@ export function PropertyModal({
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="flex flex-col gap-1.5">
                   <Label htmlFor="banos" className="font-semibold text-foreground">
-                    {"Banos"}
+                    Baños
                   </Label>
                   <Input
                     id="banos"
                     type="number"
-                    value={banos}
-                    onChange={(e) => setBanos(e.target.value)}
+                    {...register("banos", { valueAsNumber: true })}
                     className="bg-card"
                   />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="antiguedad" className="font-semibold text-foreground">
-                    {"Antiguedad"}
-                  </Label>
-                  <Input
-                    id="antiguedad"
-                    value={antiguedad}
-                    onChange={(e) => setAntiguedad(e.target.value)}
-                    placeholder="ej: 5 anos, Nuevo"
-                    className="bg-card"
-                  />
+                  <Label className="font-semibold text-foreground">Antigüedad</Label>
+                  <div className="flex items-center gap-2">
+                    <Controller
+                      name="antiguedadEsNuevo"
+                      control={control}
+                      render={({ field }) => (
+                        <Checkbox
+                          id="antiguedadEsNuevo"
+                          checked={field.value}
+                          onCheckedChange={(v) => field.onChange(v === true)}
+                        />
+                      )}
+                    />
+                    <Label htmlFor="antiguedadEsNuevo" className="text-sm font-normal text-foreground cursor-pointer">
+                      Nuevo
+                    </Label>
+                  </div>
+                  {!antiguedadEsNuevo && (
+                    <div className="flex items-center gap-2 mt-2">
+                      <Input
+                        type="number"
+                        {...register("antiguedadAnos", { valueAsNumber: true })}
+                        placeholder="Años"
+                        className="bg-card"
+                      />
+                      <span className="text-sm text-muted-foreground">años</span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Descripciones */}
+          {/* Descripción */}
           <div>
-            <h3 className="text-lg font-bold text-foreground mb-4">
-              Descripciones
-            </h3>
-            <div className="flex flex-col gap-4">
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="descripcionBreve" className="font-semibold text-foreground">
-                  {"Descripcion breve"}
-                </Label>
-                <Textarea
-                  id="descripcionBreve"
-                  value={descripcionBreve}
-                  onChange={(e) => setDescripcionBreve(e.target.value)}
-                  rows={3}
-                  className="bg-card resize-y"
-                />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="descripcionLarga" className="font-semibold text-foreground">
-                  {"Descripcion larga"}
-                </Label>
-                <Textarea
-                  id="descripcionLarga"
-                  value={descripcionLarga}
-                  onChange={(e) => setDescripcionLarga(e.target.value)}
-                  rows={4}
-                  className="bg-card resize-y"
-                />
-              </div>
+            <h3 className="text-lg font-bold text-foreground mb-4">Descripción</h3>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="descripcion" className="font-semibold text-foreground">
+                Descripción
+              </Label>
+              <Textarea
+                id="descripcion"
+                {...register("descripcion")}
+                rows={5}
+                className="bg-card resize-y"
+              />
             </div>
           </div>
 
-          {/* Caracteristicas */}
+          {/* Características */}
           <div>
             <h3 className="text-lg font-bold text-foreground mb-4">
-              {"Caracteristicas"}
+              Características
             </h3>
             <div className="grid grid-cols-2 gap-3">
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  id="garaje"
-                  checked={garaje}
-                  onCheckedChange={(v) => setGaraje(v === true)}
-                />
-                <Label htmlFor="garaje" className="text-sm font-normal text-foreground cursor-pointer">
-                  Garaje
-                </Label>
-              </div>
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  id="piscina"
-                  checked={piscina}
-                  onCheckedChange={(v) => setPiscina(v === true)}
-                />
-                <Label htmlFor="piscina" className="text-sm font-normal text-foreground cursor-pointer">
-                  Piscina
-                </Label>
-              </div>
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  id="patio"
-                  checked={patio}
-                  onCheckedChange={(v) => setPatio(v === true)}
-                />
-                <Label htmlFor="patio" className="text-sm font-normal text-foreground cursor-pointer">
-                  Patio
-                </Label>
-              </div>
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  id="seguridadPrivada"
-                  checked={seguridadPrivada}
-                  onCheckedChange={(v) => setSeguridadPrivada(v === true)}
-                />
-                <Label htmlFor="seguridadPrivada" className="text-sm font-normal text-foreground cursor-pointer">
-                  Seguridad privada
-                </Label>
-              </div>
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  id="balcon"
-                  checked={balcon}
-                  onCheckedChange={(v) => setBalcon(v === true)}
-                />
-                <Label htmlFor="balcon" className="text-sm font-normal text-foreground cursor-pointer">
-                  {"Balcon"}
-                </Label>
-              </div>
+              {[
+                { id: "garaje", label: "Garaje" },
+                { id: "piscina", label: "Piscina" },
+                { id: "patio", label: "Patio" },
+                { id: "seguridadPrivada", label: "Seguridad privada" },
+                { id: "balcon", label: "Balcón" },
+                { id: "dospisos", label: "Dos pisos" },
+                { id: "trespisos", label: "Tres pisos" },
+              ].map(({ id, label }) => (
+                <div key={id} className="flex items-center gap-2">
+                  <Controller
+                    name={id as any}
+                    control={control}
+                    render={({ field }) => (
+                      <Checkbox
+                        id={id}
+                        checked={field.value}
+                        onCheckedChange={(v) => field.onChange(v === true)}
+                      />
+                    )}
+                  />
+                  <Label htmlFor={id} className="text-sm font-normal text-foreground cursor-pointer">
+                    {label}
+                  </Label>
+                </div>
+              ))}
             </div>
           </div>
 
-          {/* Ubicacion */}
+          {/* Ubicación */}
           <div>
-            <h3 className="text-lg font-bold text-foreground mb-4">
-              {"Ubicacion"}
-            </h3>
-            <div className="flex flex-col gap-4">
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="latitud" className="font-semibold text-foreground">
-                    Latitud
-                  </Label>
-                  <Input
-                    id="latitud"
-                    value={latitud}
-                    onChange={(e) => setLatitud(e.target.value)}
-                    className="bg-card"
-                  />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="longitud" className="font-semibold text-foreground">
-                    Longitud
-                  </Label>
-                  <Input
-                    id="longitud"
-                    value={longitud}
-                    onChange={(e) => setLongitud(e.target.value)}
-                    className="bg-card"
-                  />
-                </div>
-              </div>
+            <h3 className="text-lg font-bold text-foreground mb-4">Ubicación</h3>
+            <p className="text-xs text-muted-foreground mb-4">
+              Copia el código embed de Google Maps o la URL completa del lugar
+            </p>
 
-              {/* Map preview placeholder */}
-              <div className="flex flex-col items-center justify-center rounded-md bg-muted py-10 gap-2">
-                <MapPin className="size-8 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">
-                  Vista previa del mapa (simulado)
-                </span>
-              </div>
-            </div>
+            {/* Mapa Preview */}
+            <MapPreview mapsUrl={mapsUrl} onUrlChange={(url) => setValue("mapsUrl", url)} />
           </div>
 
-          {/* Imagenes */}
+          {/* Imágenes */}
           <div>
-            <h3 className="text-lg font-bold text-foreground mb-4">
-              {"Imagenes"}
-            </h3>
-            <div className="flex flex-col items-center justify-center rounded-md border-2 border-dashed border-border bg-muted/50 py-10 gap-2">
+            <h3 className="text-lg font-bold text-foreground mb-4">Imágenes</h3>
+            
+            {/* Vista previa de imágenes subidas */}
+            {imagenes.length > 0 && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
+                {imagenes.map((imagen, idx) => (
+                  <div key={idx} className="relative group">
+                    <img
+                      src={imagen}
+                      alt={`Preview ${idx + 1}`}
+                      className="w-full h-24 object-cover rounded-md"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const nuevasImagenes = imagenes.filter((_, i) => i !== idx)
+                        setValue("imagenes", nuevasImagenes)
+                      }}
+                      className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Área de drag-drop */}
+            <div
+              onDrop={handleDragDrop}
+              onDragOver={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+              }}
+              className="flex flex-col items-center justify-center rounded-md border-2 border-dashed border-border bg-muted/50 py-10 gap-2 cursor-pointer hover:bg-muted/70 transition-colors"
+            >
               <Upload className="size-8 text-muted-foreground" />
               <span className="text-sm text-accent-foreground font-medium">
-                Subir imagenes (simulado)
+                Arrastra imágenes aquí o click para seleccionar
               </span>
               <span className="text-xs text-muted-foreground">
                 PNG, JPG hasta 10MB
               </span>
+              <input
+                type="file"
+                multiple
+                accept="image/png,image/jpeg,image/jpg"
+                onChange={(e) => e.target.files && handleImageUpload(e.target.files)}
+                className="hidden"
+                id="image-upload"
+              />
+              <label htmlFor="image-upload" className="cursor-pointer" />
             </div>
           </div>
 

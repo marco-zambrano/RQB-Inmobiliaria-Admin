@@ -10,13 +10,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { zonas } from "@/lib/data"
+import { provinciasEcuador } from "@/lib/data"
 
 interface PropertiesFiltersProps {
   searchQuery: string
   onSearchChange: (value: string) => void
-  selectedZona: string
-  onZonaChange: (value: string) => void
+  selectedProvincia: string
+  onProvinciaChange: (value: string) => void
   selectedEstado: string
   onEstadoChange: (value: string) => void
   onClearFilters: () => void
@@ -25,13 +25,13 @@ interface PropertiesFiltersProps {
 export function PropertiesFilters({
   searchQuery,
   onSearchChange,
-  selectedZona,
-  onZonaChange,
+  selectedProvincia,
+  onProvinciaChange,
   selectedEstado,
   onEstadoChange,
   onClearFilters,
 }: PropertiesFiltersProps) {
-  const hasFilters = searchQuery || selectedZona !== "all" || selectedEstado !== "all"
+  const hasFilters = searchQuery || selectedProvincia !== "all" || selectedEstado !== "all"
 
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -46,15 +46,15 @@ export function PropertiesFilters({
       </div>
 
       <div className="flex items-center gap-2">
-        <Select value={selectedZona} onValueChange={onZonaChange}>
+        <Select value={selectedProvincia} onValueChange={onProvinciaChange}>
           <SelectTrigger className="w-[160px] bg-card">
-            <SelectValue placeholder="Todas las zonas" />
+            <SelectValue placeholder="Todas las provincias" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Todas las zonas</SelectItem>
-            {zonas.map((zona) => (
-              <SelectItem key={zona} value={zona}>
-                {zona}
+            <SelectItem value="all">Todas las provincias</SelectItem>
+            {Object.keys(provinciasEcuador).map((provincia) => (
+              <SelectItem key={provincia} value={provincia}>
+                {provincia}
               </SelectItem>
             ))}
           </SelectContent>

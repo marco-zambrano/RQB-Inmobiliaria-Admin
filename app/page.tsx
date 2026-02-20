@@ -20,7 +20,7 @@ export default function AdminPage() {
 
   // Filters
   const [searchQuery, setSearchQuery] = useState("")
-  const [selectedZona, setSelectedZona] = useState("all")
+  const [selectedProvincia, setSelectedProvincia] = useState("all")
   const [selectedEstado, setSelectedEstado] = useState("all")
 
   // Modals
@@ -36,13 +36,13 @@ export default function AdminPage() {
       const matchesSearch = p.nombre
         .toLowerCase()
         .includes(searchQuery.toLowerCase())
-      const matchesZona =
-        selectedZona === "all" || p.zona === selectedZona
+      const matchesProvincia =
+        selectedProvincia === "all" || p.provincia === selectedProvincia
       const matchesEstado =
         selectedEstado === "all" || p.estado === selectedEstado
-      return matchesSearch && matchesZona && matchesEstado
+      return matchesSearch && matchesProvincia && matchesEstado
     })
-  }, [properties, searchQuery, selectedZona, selectedEstado])
+  }, [properties, searchQuery, selectedProvincia, selectedEstado])
 
   function handleAdd() {
     setEditingProperty(null)
@@ -87,7 +87,7 @@ export default function AdminPage() {
 
   function handleClearFilters() {
     setSearchQuery("")
-    setSelectedZona("all")
+    setSelectedProvincia("all")
     setSelectedEstado("all")
   }
 
@@ -120,8 +120,8 @@ export default function AdminPage() {
             <PropertiesFilters
               searchQuery={searchQuery}
               onSearchChange={setSearchQuery}
-              selectedZona={selectedZona}
-              onZonaChange={setSelectedZona}
+              selectedProvincia={selectedProvincia}
+              onProvinciaChange={setSelectedProvincia}
               selectedEstado={selectedEstado}
               onEstadoChange={setSelectedEstado}
               onClearFilters={handleClearFilters}

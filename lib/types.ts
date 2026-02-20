@@ -5,16 +5,19 @@ export type PropertyType = "apartment" | "house" | "penthouse" | "loft"
 export interface Property {
   id: string
   nombre: string
-  descripcionBreve: string
-  descripcionLarga: string
+  descripcion: string
   precio: number
   tipo: PropertyType
-  zona: string
+  provincia: string
+  ciudad: string
   habitaciones: number
   banos: number
   areaTotales: number
   areaConstruccion: number
-  antiguedad: string
+  antiguedad: {
+    esNuevo: boolean
+    anos: number
+  }
   direccion: string
   imagenes: string[]
   caracteristicas: {
@@ -23,9 +26,10 @@ export interface Property {
     patio: boolean
     seguridadPrivada: boolean
     balcon: boolean
+    dospisos: boolean
+    trespisos: boolean
   }
   estado: PropertyStatus
   fecha: string
-  latitud: string
-  longitud: string
+  mapsUrl: string
 }

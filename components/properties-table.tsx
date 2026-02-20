@@ -95,7 +95,7 @@ export function PropertiesTable({ properties, onEdit, onDelete }: PropertiesTabl
                 {formatPrice(property.precio)}
               </TableCell>
               <TableCell className="text-foreground">
-                {property.zona}
+                {property.provincia}
               </TableCell>
               <TableCell>
                 <StatusBadge estado={property.estado} />
@@ -162,7 +162,7 @@ export function PropertiesCards({ properties, onEdit, onDelete }: PropertiesTabl
               <h3 className="text-sm font-medium text-foreground">{property.nombre}</h3>
               <p className="text-sm text-foreground">{formatPrice(property.precio)}</p>
               <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground">{property.zona}</span>
+                <span className="text-xs text-muted-foreground">{property.provincia}</span>
                 <StatusBadge estado={property.estado} />
               </div>
               <p className="text-xs text-muted-foreground">{property.fecha}</p>
