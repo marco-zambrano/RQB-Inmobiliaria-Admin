@@ -1,5 +1,6 @@
 "use client"
 
+import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { supabase } from "@/lib/supabaseClient"
 import { Building2, Home, LogOut, ClipboardList } from "lucide-react"
@@ -10,6 +11,7 @@ interface AdminSidebarProps {
 }
 
 export function AdminSidebar({ activeTab, onTabChange }: AdminSidebarProps) {
+  const router = useRouter()
   return (
     <aside className="fixed left-0 top-0 z-40 flex h-screen w-52.5 flex-col border-r border-border bg-card">
       <div className="flex items-center gap-2.5 px-5 py-5">
@@ -50,8 +52,7 @@ export function AdminSidebar({ activeTab, onTabChange }: AdminSidebarProps) {
         <button
           onClick={async () => {
             await supabase.auth.signOut();
-            // since this is a client component we can use window.location
-            window.location.href = "/login";
+            router.push("/login");
           }}
           className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
         >

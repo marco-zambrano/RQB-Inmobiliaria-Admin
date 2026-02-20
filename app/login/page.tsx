@@ -47,7 +47,7 @@ export default function LoginPage() {
       >
         <h1 className="text-2xl font-bold text-center">Administración</h1>
         {error && (
-          <p className="text-sm text-destructive text-center">{error}</p>
+          <p className="text-sm text-destructive text-center">Usuario Inválido</p>
         )}
         <div className="flex flex-col space-y-1">
           <Label htmlFor="email">Correo</Label>
@@ -69,7 +69,7 @@ export default function LoginPage() {
             required
           />
         </div>
-        <Button type="submit" className="w-full" disabled={loading}>
+        <Button type="submit" className="w-full cursor-pointer" disabled={loading}>
           {loading ? "Cargando..." : "Ingresar"}
         </Button>
       </form>
