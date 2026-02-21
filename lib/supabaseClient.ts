@@ -42,3 +42,24 @@ export async function uploadImageToSupabase(file: File): Promise<string> {
     throw error;
   }
 }
+
+export async function deleteImageFromSupabase(imageUrl: string): Promise<void> {
+  try {
+    // Extraer el path del archivo de la URL pública
+    // Formato: https://[project].supabase.co/storage/v1/object/public/properties/images/[filename]
+    const urlParts = imageUrl.split("/");
+    const fileName = urlParts[urlParts.length - 1];
+    const filePath = `images/${fileName}`;
+
+    const { error } = await supabase.storage
+      .from("properties")
+      .remove([filePath]);
+
+    if (error) {
+      throw new Error(`Error deleting file: ${error.message}`);
+    }
+  } catch (error) {
+    console.error("Delete error:", error);
+    throw error;
+  }
+}
