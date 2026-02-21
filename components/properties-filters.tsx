@@ -67,7 +67,6 @@ export function PropertiesFilters({
           <SelectContent>
             <SelectItem value="all">Todos los estados</SelectItem>
             <SelectItem value="disponible">Disponible</SelectItem>
-            <SelectItem value="reservada">Reservada</SelectItem>
             <SelectItem value="vendida">Vendida</SelectItem>
           </SelectContent>
         </Select>

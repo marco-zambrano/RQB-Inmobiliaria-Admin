@@ -24,9 +24,9 @@ import {
 } from "@/components/ui/select"
 import { provinciasEcuador, tiposPropiedad } from "@/lib/data"
 import type { Property, PropertyStatus, PropertyType } from "@/lib/types"
-import { Upload, X } from "lucide-react"
+import { Upload, X, Trash2 } from "lucide-react"
 import { MapPreview } from "./map-preview"
-import { uploadImageToSupabase } from "@/lib/supabaseClient"
+import { uploadImageToSupabase, deleteImageFromSupabase } from "@/lib/supabaseClient"
 
 const propertySchema = z.object({
   nombre: z.string().min(3, "El nombre debe tener al menos 3 caracteres"),
@@ -34,8 +34,8 @@ const propertySchema = z.object({
   direccion: z.string().optional(),
   provincia: z.string().min(1, "Selecciona una provincia"),
   ciudad: z.string().min(1, "Selecciona una ciudad"),
-  tipo: z.enum(["apartment", "house", "penthouse", "loft"]),
-  estado: z.enum(["disponible", "reservada", "vendida"]),
+  tipo: z.enum(["negocio", "apartamento", "casa"]),
+  estado: z.enum(["disponible", "vendida"]),
   areaTotales: z.number().nonnegative().optional(),
   areaConstruccion: z.number().nonnegative().optional(),
   habitaciones: z.number().nonnegative().optional(),
@@ -85,7 +85,7 @@ export function PropertyModal({
       direccion: "",
       provincia: "",
       ciudad: "",
-      tipo: "house",
+      tipo: "negocio",
       estado: "disponible",
       areaTotales: undefined,
       areaConstruccion: undefined,
@@ -149,7 +149,7 @@ export function PropertyModal({
         direccion: "",
         provincia: "",
         ciudad: "",
-        tipo: "house",
+        tipo: "negocio",
         estado: "disponible",
         areaTotales: undefined,
         areaConstruccion: undefined,
@@ -373,7 +373,6 @@ export function PropertyModal({
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="disponible">Disponible</SelectItem>
-                          <SelectItem value="reservada">Reservada</SelectItem>
                           <SelectItem value="vendida">Vendida</SelectItem>
                         </SelectContent>
                       </Select>
@@ -550,11 +549,26 @@ export function PropertyModal({
                     />
                     <button
                       type="button"
-                      onClick={() => {
-                        const nuevasImagenes = imagenes.filter((_, i) => i !== idx)
-                        setValue("imagenes", nuevasImagenes)
+                      onClick={async (e) => {
+                        e.preventDefault()
+                        
+                        // Confirmation dialog
+                        const confirmed = confirm("¿Deseas eliminar esta imagen de Supabase?")
+                        if (!confirmed) return
+                        
+                        try {
+                          // Delete from Supabase Storage
+                          await deleteImageFromSupabase(imagen)
+                          
+                          // Remove from local array
+                          const nuevasImagenes = imagenes.filter((_, i) => i !== idx)
+                          setValue("imagenes", nuevasImagenes)
+                        } catch (error) {
+                          console.error("Error deleting image:", error)
+                          alert("Error al eliminar la imagen. Por favor intenta de nuevo.")
+                        }
                       }}
-                      className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity"
                     >
                       <X className="w-4 h-4" />
                     </button>

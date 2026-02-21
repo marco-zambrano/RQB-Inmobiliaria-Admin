@@ -26,10 +26,6 @@ function StatusBadge({ estado }: { estado: string }) {
       label: "Disponible",
       className: "border-transparent bg-green-600 text-white hover:bg-green-600",
     },
-    reservada: {
-      label: "Reservada",
-      className: "border-transparent bg-yellow-500 text-white hover:bg-yellow-500",
-    },
     vendida: {
       label: "Vendida",
       className: "border-transparent bg-muted-foreground text-white hover:bg-muted-foreground",

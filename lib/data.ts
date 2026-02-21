@@ -149,7 +149,7 @@ export const initialProperties: Property[] = [
     nombre: "Casa Moderna en Pichincha",
     descripcion: "Hermosa casa moderna con acabados de lujo, amplios espacios y jardin privado. Ubicada en una de las mejores zonas del norte de la ciudad con facil acceso a vias principales.",
     precio: 450000,
-    tipo: "house",
+    tipo: "casa",
     provincia: "Pichincha",
     ciudad: "Quito",
     habitaciones: 4,
@@ -180,7 +180,7 @@ export const initialProperties: Property[] = [
     nombre: "Apartamento Penthouse Guayas",
     descripcion: "Espectacular penthouse con vista panoramica al centro de la ciudad. Acabados de primera, terraza amplia y zonas comunes de lujo.",
     precio: 380000,
-    tipo: "penthouse",
+    tipo: "apartamento",
     provincia: "Guayas",
     ciudad: "Guayaquil",
     habitaciones: 3,
@@ -211,7 +211,7 @@ export const initialProperties: Property[] = [
     nombre: "Casa Campestre Manabi",
     descripcion: "Acogedora casa campestre con diseno contemporaneo en zona exclusiva. Amplio jardin, chimenea y zona BBQ perfecta para familias.",
     precio: 520000,
-    tipo: "house",
+    tipo: "negocio",
     provincia: "Manabi",
     ciudad: "Manta",
     habitaciones: 5,
@@ -240,8 +240,7 @@ export const initialProperties: Property[] = [
 ]
 
 export const tiposPropiedad: { value: string; label: string }[] = [
-  { value: "apartment", label: "Apartamento" },
-  { value: "house", label: "Casa" },
-  { value: "penthouse", label: "Penthouse" },
-  { value: "loft", label: "Loft" },
+  { value: "negocio", label: "Negocio" },
+  { value: "apartamento", label: "Apartamento" },
+  { value: "casa", label: "Casa" },
 ]

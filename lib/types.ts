@@ -1,6 +1,6 @@
-export type PropertyStatus = "disponible" | "reservada" | "vendida"
+export type PropertyStatus = "disponible" | "vendida"
 
-export type PropertyType = "apartment" | "house" | "penthouse" | "loft"
+export type PropertyType = "negocio" | "apartamento" | "casa"
 
 export interface Property {
   id: string
