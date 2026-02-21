@@ -19,6 +19,8 @@ interface PropertiesFiltersProps {
   onProvinciaChange: (value: string) => void
   selectedEstado: string
   onEstadoChange: (value: string) => void
+  selectedTipo: string
+  onTipoChange: (value: string) => void
   onClearFilters: () => void
 }
 
@@ -29,9 +31,11 @@ export function PropertiesFilters({
   onProvinciaChange,
   selectedEstado,
   onEstadoChange,
+  selectedTipo,
+  onTipoChange,
   onClearFilters,
 }: PropertiesFiltersProps) {
-  const hasFilters = searchQuery || selectedProvincia !== "all" || selectedEstado !== "all"
+  const hasFilters = searchQuery || selectedProvincia !== "all" || selectedEstado !== "all" || selectedTipo !== "all"
 
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -68,6 +72,18 @@ export function PropertiesFilters({
             <SelectItem value="all">Todos los estados</SelectItem>
             <SelectItem value="disponible">Disponible</SelectItem>
             <SelectItem value="vendida">Vendida</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select value={selectedTipo} onValueChange={onTipoChange}>
+          <SelectTrigger className="w-[170px] bg-card">
+            <SelectValue placeholder="Todos los tipos" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos los tipos</SelectItem>
+            <SelectItem value="casa">Casa</SelectItem>
+            <SelectItem value="apartamento">Apartamento</SelectItem>
+            <SelectItem value="negocio">Negocio</SelectItem>
           </SelectContent>
         </Select>
 

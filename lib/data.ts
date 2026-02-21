@@ -234,6 +234,7 @@ export const initialProperties: Property[] = [
       trespisos: false,
     },
     estado: "vendida",
+    fechaVendida: "2025-02-03",
     fecha: "2024-02-01",
     mapsUrl: "",
   },

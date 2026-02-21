@@ -31,5 +31,6 @@ export interface Property {
   }
   estado: PropertyStatus
   fecha: string
+  fechaVendida?: string
   mapsUrl: string
 }

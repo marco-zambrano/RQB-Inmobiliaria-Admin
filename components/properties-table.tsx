@@ -65,9 +65,11 @@ export function PropertiesTable({ properties, onEdit, onDelete }: PropertiesTabl
             <TableHead className="w-[80px] text-muted-foreground font-normal text-sm">Imagen</TableHead>
             <TableHead className="text-muted-foreground font-normal text-sm">Titulo</TableHead>
             <TableHead className="text-muted-foreground font-normal text-sm">Precio</TableHead>
+            <TableHead className="text-muted-foreground font-normal text-sm">Tipo</TableHead>
             <TableHead className="text-muted-foreground font-normal text-sm">Zona</TableHead>
             <TableHead className="text-muted-foreground font-normal text-sm">Estado</TableHead>
             <TableHead className="text-muted-foreground font-normal text-sm">Fecha</TableHead>
+            <TableHead className="text-muted-foreground font-normal text-sm">Fecha Vendida</TableHead>
             <TableHead className="text-right text-muted-foreground font-normal text-sm">Acciones</TableHead>
           </TableRow>
         </TableHeader>
@@ -90,6 +92,9 @@ export function PropertiesTable({ properties, onEdit, onDelete }: PropertiesTabl
               <TableCell className="text-foreground">
                 {formatPrice(property.precio)}
               </TableCell>
+              <TableCell className="text-foreground capitalize">
+                {property.tipo}
+              </TableCell>
               <TableCell className="text-foreground">
                 {property.provincia}
               </TableCell>
@@ -98,6 +103,9 @@ export function PropertiesTable({ properties, onEdit, onDelete }: PropertiesTabl
               </TableCell>
               <TableCell className="text-foreground">
                 {property.fecha}
+              </TableCell>
+              <TableCell className="text-foreground">
+                {property.fechaVendida || "-"}
               </TableCell>
               <TableCell className="text-right">
                 <div className="flex items-center justify-end gap-1">

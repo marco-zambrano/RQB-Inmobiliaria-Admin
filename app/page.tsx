@@ -22,6 +22,7 @@ export default function AdminPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedProvincia, setSelectedProvincia] = useState("all")
   const [selectedEstado, setSelectedEstado] = useState("all")
+  const [selectedTipo, setSelectedTipo] = useState("all")
 
   // Modals
   const [modalOpen, setModalOpen] = useState(false)
@@ -40,9 +41,11 @@ export default function AdminPage() {
         selectedProvincia === "all" || p.provincia === selectedProvincia
       const matchesEstado =
         selectedEstado === "all" || p.estado === selectedEstado
-      return matchesSearch && matchesProvincia && matchesEstado
+      const matchesTipo =
+        selectedTipo === "all" || p.tipo === selectedTipo
+      return matchesSearch && matchesProvincia && matchesEstado && matchesTipo
     })
-  }, [properties, searchQuery, selectedProvincia, selectedEstado])
+  }, [properties, searchQuery, selectedProvincia, selectedEstado, selectedTipo])
 
   function handleAdd() {
     setEditingProperty(null)
@@ -89,6 +92,7 @@ export default function AdminPage() {
     setSearchQuery("")
     setSelectedProvincia("all")
     setSelectedEstado("all")
+    setSelectedTipo("all")
   }
 
   return (
@@ -124,6 +128,8 @@ export default function AdminPage() {
               onProvinciaChange={setSelectedProvincia}
               selectedEstado={selectedEstado}
               onEstadoChange={setSelectedEstado}
+              selectedTipo={selectedTipo}
+              onTipoChange={setSelectedTipo}
               onClearFilters={handleClearFilters}
             />
 
