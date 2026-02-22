@@ -20,7 +20,7 @@ interface PropertiesTableProps {
   onDelete: (property: Property) => void
 }
 
-function StatusBadge({ estado }: { estado: string }) {
+function StatusBadge({ status }: { status: string }) {
   const config: Record<string, { label: string; className: string }> = {
     disponible: {
       label: "Disponible",
@@ -32,8 +32,8 @@ function StatusBadge({ estado }: { estado: string }) {
     },
   }
 
-  const { label, className } = config[estado] ?? {
-    label: estado,
+  const { label, className } = config[status] ?? {
+    label: status,
     className: "",
   }
 
@@ -44,8 +44,13 @@ function StatusBadge({ estado }: { estado: string }) {
   )
 }
 
-function formatPrice(price: number) {
-  return `$${price.toLocaleString("es-CO")}`
+function formatPrice(price?: number) {
+  if (typeof price !== "number" || Number.isNaN(price)) return "-"
+  return new Intl.NumberFormat("es-EC", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  }).format(price)
 }
 
 export function PropertiesTable({ properties, onEdit, onDelete }: PropertiesTableProps) {
@@ -57,6 +62,8 @@ export function PropertiesTable({ properties, onEdit, onDelete }: PropertiesTabl
     )
   }
 
+    console.log(properties);
+    
   return (
     <div className="rounded-lg border border-border bg-card">
       <Table>
@@ -78,34 +85,40 @@ export function PropertiesTable({ properties, onEdit, onDelete }: PropertiesTabl
             <TableRow key={property.id} className="hover:bg-muted/30">
               <TableCell>
                 <div className="relative h-12 w-16 overflow-hidden rounded-md">
-                  <Image
-                    src={property.imagenes[0] || "/images/casa-moderna.jpg"}
-                    alt={property.nombre}
-                    fill
-                    className="object-cover"
-                  />
+                  {property.images?.[0]?.image_url ? (
+                    <Image
+                      src={property.images[0].image_url}
+                      alt={property.title}
+                      fill
+                      className="object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center bg-muted text-muted-foreground text-xs">
+                      —
+                    </div>
+                  )}
                 </div>
               </TableCell>
               <TableCell className="font-medium text-foreground">
-                {property.nombre}
+                {property.title}
               </TableCell>
               <TableCell className="text-foreground">
-                {formatPrice(property.precio)}
+                {formatPrice(property.price)}
               </TableCell>
               <TableCell className="text-foreground capitalize">
-                {property.tipo}
+                {property.property_type}
               </TableCell>
               <TableCell className="text-foreground">
-                {property.provincia}
+                {property.province}
               </TableCell>
               <TableCell>
-                <StatusBadge estado={property.estado} />
+                <StatusBadge status={property.status} />
               </TableCell>
               <TableCell className="text-foreground">
-                {property.fecha}
+                {property.created_at ? new Date(property.created_at).toLocaleDateString("es-EC") : "-"}
               </TableCell>
               <TableCell className="text-foreground">
-                {property.fechaVendida || "-"}
+                {property.sold_at ? new Date(property.sold_at).toLocaleDateString("es-EC") : "-"}
               </TableCell>
               <TableCell className="text-right">
                 <div className="flex items-center justify-end gap-1">
@@ -156,20 +169,22 @@ export function PropertiesCards({ properties, onEdit, onDelete }: PropertiesTabl
           <div className="flex gap-4">
             <div className="relative h-20 w-24 shrink-0 overflow-hidden rounded-md">
               <Image
-                src={property.imagenes[0] || "/images/casa-moderna.jpg"}
-                alt={property.nombre}
+                src={property.images?.[0]?.image_url || "/images/casa-moderna.jpg"}
+                alt={property.title}
                 fill
                 className="object-cover"
               />
             </div>
             <div className="flex flex-1 flex-col gap-1.5">
-              <h3 className="text-sm font-medium text-foreground">{property.nombre}</h3>
-              <p className="text-sm text-foreground">{formatPrice(property.precio)}</p>
+              <h3 className="text-sm font-medium text-foreground">{property.title}</h3>
+              <p className="text-sm text-foreground">{formatPrice(property.price)}</p>
               <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground">{property.provincia}</span>
-                <StatusBadge estado={property.estado} />
+                <span className="text-xs text-muted-foreground">{property.province}</span>
+                <StatusBadge status={property.status} />
               </div>
-              <p className="text-xs text-muted-foreground">{property.fecha}</p>
+              <p className="text-xs text-muted-foreground">
+                {property.created_at ? new Date(property.created_at).toLocaleDateString("es-EC") : "-"}
+              </p>
             </div>
           </div>
           <div className="mt-3 flex items-center justify-end gap-1 border-t border-border pt-3">

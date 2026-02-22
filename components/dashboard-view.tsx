@@ -11,9 +11,9 @@ export function DashboardView({ properties }: DashboardViewProps) {
   const totalProperties = properties.length
   const avgPrice =
     properties.length > 0
-      ? properties.reduce((sum, p) => sum + p.precio, 0) / properties.length
+      ? properties.reduce((sum, p) => sum + p.price, 0) / properties.length
       : 0
-  const totalRooms = properties.reduce((sum, p) => sum + p.habitaciones, 0)
+  const totalRooms = properties.reduce((sum, p) => sum + (p.bedrooms ?? 0), 0)
 
   const stats = [
     {

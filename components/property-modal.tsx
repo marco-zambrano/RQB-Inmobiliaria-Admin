@@ -117,30 +117,33 @@ export function PropertyModal({
 
   useEffect(() => {
     if (property) {
+      const featuresSet = new Set(property.features ?? [])
       reset({
-        nombre: property.nombre,
-        precio: property.precio,
-        direccion: property.direccion,
-        provincia: property.provincia,
-        ciudad: property.ciudad,
-        tipo: property.tipo,
-        estado: property.estado,
-        areaTotales: property.areaTotales,
-        areaConstruccion: property.areaConstruccion,
-        habitaciones: property.habitaciones,
-        banos: property.banos,
-        antiguedadEsNuevo: property.antiguedad.esNuevo,
-        antiguedadAnos: property.antiguedad.anos,
-        descripcion: property.descripcion,
-        garaje: property.caracteristicas.garaje,
-        piscina: property.caracteristicas.piscina,
-        patio: property.caracteristicas.patio,
-        seguridadPrivada: property.caracteristicas.seguridadPrivada,
-        balcon: property.caracteristicas.balcon,
-        dospisos: property.caracteristicas.dospisos,
-        trespisos: property.caracteristicas.trespisos,
-        mapsUrl: property.mapsUrl,
-        imagenes: property.imagenes,
+        nombre: property.title,
+        precio: property.price,
+        direccion: property.address,
+        provincia: property.province,
+        ciudad: property.city,
+        tipo: property.property_type,
+        estado: property.status,
+        areaTotales: property.sqm_total ?? undefined,
+        areaConstruccion: property.sqm_built ?? undefined,
+        habitaciones: property.bedrooms ?? undefined,
+        banos: property.bathrooms ?? undefined,
+        antiguedadEsNuevo: property.antiquity_years === 0,
+        antiguedadAnos: property.antiquity_years || undefined,
+        descripcion: property.description ?? "",
+        garaje: featuresSet.has("garaje"),
+        piscina: featuresSet.has("piscina"),
+        patio: featuresSet.has("patio"),
+        seguridadPrivada: featuresSet.has("seguridadPrivada"),
+        balcon: featuresSet.has("balcon"),
+        dospisos: featuresSet.has("dospisos"),
+        trespisos: featuresSet.has("trespisos"),
+        mapsUrl: property.latitude != null && property.longitude != null
+          ? `https://www.google.com/maps?q=${property.latitude},${property.longitude}`
+          : "",
+        imagenes: (property.images ?? []).map((i) => i.image_url),
       })
     } else {
       reset({
@@ -172,35 +175,43 @@ export function PropertyModal({
   }, [property, open, reset])
 
   const onSubmit = (formData: PropertyFormData) => {
+    const features: string[] = []
+    if (formData.garaje) features.push("garaje")
+    if (formData.piscina) features.push("piscina")
+    if (formData.patio) features.push("patio")
+    if (formData.seguridadPrivada) features.push("seguridadPrivada")
+    if (formData.balcon) features.push("balcon")
+    if (formData.dospisos) features.push("dospisos")
+    if (formData.trespisos) features.push("trespisos")
+
+    const antiquity_years = formData.antiguedadEsNuevo ? 0 : (formData.antiguedadAnos ?? 0)
+
     onSave({
-      nombre: formData.nombre,
-      descripcion: formData.descripcion || "",
-      precio: formData.precio || 0,
-      tipo: formData.tipo as PropertyType,
-      provincia: formData.provincia,
-      ciudad: formData.ciudad,
-      habitaciones: formData.habitaciones || 0,
-      banos: formData.banos || 0,
-      areaTotales: formData.areaTotales || 0,
-      areaConstruccion: formData.areaConstruccion || 0,
-      antiguedad: {
-        esNuevo: formData.antiguedadEsNuevo,
-        anos: formData.antiguedadAnos || 0,
-      },
-      direccion: formData.direccion || "",
-      imagenes: formData.imagenes,
-      caracteristicas: {
-        garaje: formData.garaje,
-        piscina: formData.piscina,
-        patio: formData.patio,
-        seguridadPrivada: formData.seguridadPrivada,
-        balcon: formData.balcon,
-        dospisos: formData.dospisos,
-        trespisos: formData.trespisos,
-      },
-      estado: formData.estado as PropertyStatus,
-      fecha: property?.fecha || new Date().toISOString().split("T")[0],
-      mapsUrl: formData.mapsUrl || "",
+      title: formData.nombre,
+      description: formData.descripcion || null,
+      price: formData.precio || 0,
+      property_type: formData.tipo as PropertyType,
+      province: formData.provincia,
+      city: formData.ciudad,
+      bedrooms: formData.habitaciones ?? null,
+      bathrooms: formData.banos ?? null,
+      sqm_total: formData.areaTotales ?? null,
+      sqm_built: formData.areaConstruccion ?? null,
+      antiquity_years,
+      address: formData.direccion || "",
+      features,
+      status: formData.estado as PropertyStatus,
+      latitude: null,
+      longitude: null,
+      interest_level: property?.interest_level ?? 0,
+      sold_at: property?.sold_at ?? null,
+      created_at: property?.created_at ?? new Date().toISOString(),
+      images: formData.imagenes.map((url) => ({
+        id: "",
+        property_id: property?.id ?? "",
+        image_url: url,
+        created_at: "",
+      })),
     })
     onOpenChange(false)
   }

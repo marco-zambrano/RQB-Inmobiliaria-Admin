@@ -35,7 +35,7 @@ export function DeleteDialog({
           <AlertDialogDescription>
             {'Esta accion no se puede deshacer. Se eliminara permanentemente '}
             <span className="font-semibold text-foreground">
-              {property?.nombre}
+              {property?.title}
             </span>
             {' del sistema.'}
           </AlertDialogDescription>
