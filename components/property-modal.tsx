@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useRef } from "react"
 import { useForm, Controller } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
@@ -110,6 +110,7 @@ export function PropertyModal({
   const antiguedadEsNuevo = watch("antiguedadEsNuevo")
   const imagenes = watch("imagenes")
   const mapsUrl = watch("mapsUrl")
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const ciudadesDisponibles = provincia
     ? (provinciasEcuador[provincia as keyof typeof provinciasEcuador] || [])
@@ -175,6 +176,13 @@ export function PropertyModal({
   }, [property, open, reset])
 
   const onSubmit = (formData: PropertyFormData) => {
+    // Solo usar URLs de Supabase; ignorar blob URLs (imágenes aún subiendo o locales)
+    const urlsSupabase = formData.imagenes.filter((url) => !url.startsWith("blob:"))
+
+    if (formData.imagenes.length > urlsSupabase.length) {
+      alert("Algunas imágenes siguen subiendo. Guarda de nuevo cuando terminen para incluirlas.")
+    }
+
     const features: string[] = []
     if (formData.garaje) features.push("garaje")
     if (formData.piscina) features.push("piscina")
@@ -206,7 +214,7 @@ export function PropertyModal({
       interest_level: property?.interest_level ?? 0,
       sold_at: property?.sold_at ?? null,
       created_at: property?.created_at ?? new Date().toISOString(),
-      images: formData.imagenes.map((url) => ({
+      images: urlsSupabase.map((url) => ({
         id: "",
         property_id: property?.id ?? "",
         image_url: url,
@@ -217,28 +225,43 @@ export function PropertyModal({
   }
 
   const handleImageUpload = async (files: FileList) => {
-    const fileArray = Array.from(files)
-    
-    const updatedImagenes = [...imagenes]
-    
+    const fileArray = Array.from(files).filter(
+      (f) => f.type === "image/png" || f.type === "image/jpeg" || f.type === "image/jpg"
+    )
+    if (fileArray.length === 0) return
+
+    let updatedImagenes = [...imagenes]
+
     for (const file of fileArray) {
+      // Vista previa inmediata con blob URL mientras se sube
+      const blobUrl = URL.createObjectURL(file)
+      updatedImagenes = [...updatedImagenes, blobUrl]
+      setValue("imagenes", updatedImagenes)
+
       try {
         const url = await uploadImageToSupabase(file)
-        updatedImagenes.push(url)
+        updatedImagenes = updatedImagenes.map((u) => (u === blobUrl ? url : u))
+        setValue("imagenes", updatedImagenes)
       } catch (error) {
         console.error("Error subiendo imagen:", error)
+        updatedImagenes = updatedImagenes.filter((u) => u !== blobUrl)
+        setValue("imagenes", updatedImagenes)
+      } finally {
+        URL.revokeObjectURL(blobUrl)
       }
     }
-    
-    setValue("imagenes", updatedImagenes)
   }
 
   const handleDragDrop = (e: React.DragEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    if (e.dataTransfer.files) {
-      handleImageUpload(e.dataTransfer.files)
-    }
+    const files = e.dataTransfer.files
+    if (files?.length) handleImageUpload(files)
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
   }
 
   return (
@@ -562,16 +585,18 @@ export function PropertyModal({
                       type="button"
                       onClick={async (e) => {
                         e.preventDefault()
+                        e.stopPropagation()
                         
-                        // Confirmation dialog
-                        const confirmed = confirm("¿Deseas eliminar esta imagen de Supabase?")
+                        const isBlobUrl = imagen.startsWith("blob:")
+                        const confirmed = isBlobUrl
+                          ? confirm("¿Deseas eliminar esta imagen?")
+                          : confirm("¿Deseas eliminar esta imagen de Supabase?")
                         if (!confirmed) return
                         
                         try {
-                          // Delete from Supabase Storage
-                          await deleteImageFromSupabase(imagen)
-                          
-                          // Remove from local array
+                          if (!isBlobUrl) {
+                            await deleteImageFromSupabase(imagen)
+                          }
                           const nuevasImagenes = imagenes.filter((_, i) => i !== idx)
                           setValue("imagenes", nuevasImagenes)
                         } catch (error) {
@@ -588,32 +613,39 @@ export function PropertyModal({
               </div>
             )}
 
-            {/* Área de drag-drop */}
-            <div
+            {/* Área de drag-drop: label hace click → abre explorador; div recibe drop */}
+            <label
+              htmlFor="image-upload"
+              className="flex flex-col items-center justify-center w-full cursor-pointer rounded-md border-2 border-dashed border-border bg-muted/50 py-10 gap-2 hover:bg-muted/70 transition-colors"
               onDrop={handleDragDrop}
-              onDragOver={(e) => {
-                e.preventDefault()
-                e.stopPropagation()
-              }}
-              className="flex flex-col items-center justify-center rounded-md border-2 border-dashed border-border bg-muted/50 py-10 gap-2 cursor-pointer hover:bg-muted/70 transition-colors"
+              onDragOver={handleDragOver}
             >
-              <Upload className="size-8 text-muted-foreground" />
-              <span className="text-sm text-accent-foreground font-medium">
-                Arrastra imágenes aquí o click para seleccionar
-              </span>
-              <span className="text-xs text-muted-foreground">
-                PNG, JPG hasta 10MB
-              </span>
               <input
+                ref={fileInputRef}
+                id="image-upload"
                 type="file"
                 multiple
                 accept="image/png,image/jpeg,image/jpg"
-                onChange={(e) => e.target.files && handleImageUpload(e.target.files)}
-                className="hidden"
-                id="image-upload"
+                onChange={(e) => {
+                  const files = e.target.files
+                  if (files?.length) {
+                    handleImageUpload(files)
+                    e.target.value = ""
+                  }
+                }}
+                className="sr-only"
+                tabIndex={-1}
               />
-              <label htmlFor="image-upload" className="cursor-pointer" />
-            </div>
+              <div className="flex flex-col items-center justify-center gap-2 pointer-events-none">
+                <Upload className="size-8 text-muted-foreground" />
+                <span className="text-sm text-accent-foreground font-medium">
+                  Arrastra imágenes aquí o haz click para seleccionar
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  PNG, JPG hasta 10MB
+                </span>
+              </div>
+            </label>
           </div>
 
           {/* Footer buttons */}

@@ -172,9 +172,10 @@ export default function AdminPage() {
 
           if (updateErr) throw updateErr
 
-          const imageUrls = Array.isArray(_imgs)
+          const imageUrls = (Array.isArray(_imgs)
             ? _imgs.map((img) => (typeof img === "string" ? img : img.image_url))
             : []
+          ).filter((url) => !url.startsWith("blob:"))
           await supabase.from("property_images").delete().eq("property_id", editingProperty.id)
           if (imageUrls.length > 0) {
             const imagesToInsert = imageUrls.map((url) => ({ property_id: editingProperty.id, image_url: url }))
@@ -192,9 +193,10 @@ export default function AdminPage() {
           )
         } else {
           const { images: _imgs, ...dbData } = data
-          const imageUrls = Array.isArray(_imgs)
+          const imageUrls = (Array.isArray(_imgs)
             ? _imgs.map((img) => (typeof img === "string" ? img : img.image_url))
             : []
+          ).filter((url) => !url.startsWith("blob:"))
           const { data: created, error: insertErr } = await supabase.from("properties").insert([dbData]).select().single()
           if (insertErr) throw insertErr
 

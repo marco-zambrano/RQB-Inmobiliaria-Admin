@@ -10,6 +10,9 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
+// Nombre del bucket en Supabase Storage (solo minúsculas, números y guiones; sin espacios)
+export const STORAGE_BUCKET = "Pages File";
+
 export async function uploadImageToSupabase(file: File): Promise<string> {
   if (!file) throw new Error("No file selected");
 
@@ -21,8 +24,8 @@ export async function uploadImageToSupabase(file: File): Promise<string> {
   try {
     // Subir archivo a Supabase Storage
     const { data, error } = await supabase.storage
-      .from("properties")
-      .upload(`images/${fileName}`, file, {
+      .from(STORAGE_BUCKET)
+      .upload(fileName, file, {
         cacheControl: "3600",
         upsert: false,
       });
@@ -33,7 +36,7 @@ export async function uploadImageToSupabase(file: File): Promise<string> {
 
     // Obtener URL pública
     const { data: publicUrlData } = supabase.storage
-      .from("properties")
+      .from(STORAGE_BUCKET)
       .getPublicUrl(data.path);
 
     return publicUrlData.publicUrl;
@@ -45,15 +48,13 @@ export async function uploadImageToSupabase(file: File): Promise<string> {
 
 export async function deleteImageFromSupabase(imageUrl: string): Promise<void> {
   try {
-    // Extraer el path del archivo de la URL pública
-    // Formato: https://[project].supabase.co/storage/v1/object/public/properties/images/[filename]
+    // Extraer el filename de la URL pública
     const urlParts = imageUrl.split("/");
-    const fileName = urlParts[urlParts.length - 1];
-    const filePath = `images/${fileName}`;
+    const fileName = decodeURIComponent(urlParts[urlParts.length - 1]);
 
     const { error } = await supabase.storage
-      .from("properties")
-      .remove([filePath]);
+      .from(STORAGE_BUCKET)
+      .remove([fileName]);
 
     if (error) {
       throw new Error(`Error deleting file: ${error.message}`);
