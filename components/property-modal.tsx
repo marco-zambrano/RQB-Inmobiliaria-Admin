@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useForm, Controller } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
@@ -111,12 +111,17 @@ export function PropertyModal({
   const imagenes = watch("imagenes")
   const mapsUrl = watch("mapsUrl")
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [pendingFiles, setPendingFiles] = useState<{ id: string; url: string; file: File }[]>([])
 
   const ciudadesDisponibles = provincia
     ? (provinciasEcuador[provincia as keyof typeof provinciasEcuador] || [])
     : []
 
   useEffect(() => {
+    setPendingFiles((prev) => {
+      prev.forEach((p) => URL.revokeObjectURL(p.url))
+      return []
+    })
     if (property) {
       const featuresSet = new Set(property.features ?? [])
       reset({
@@ -175,14 +180,7 @@ export function PropertyModal({
     }
   }, [property, open, reset])
 
-  const onSubmit = (formData: PropertyFormData) => {
-    // Solo usar URLs de Supabase; ignorar blob URLs (imágenes aún subiendo o locales)
-    const urlsSupabase = formData.imagenes.filter((url) => !url.startsWith("blob:"))
-
-    if (formData.imagenes.length > urlsSupabase.length) {
-      alert("Algunas imágenes siguen subiendo. Guarda de nuevo cuando terminen para incluirlas.")
-    }
-
+  const onSubmit = async (formData: PropertyFormData) => {
     const features: string[] = []
     if (formData.garaje) features.push("garaje")
     if (formData.piscina) features.push("piscina")
@@ -193,6 +191,22 @@ export function PropertyModal({
     if (formData.trespisos) features.push("trespisos")
 
     const antiquity_years = formData.antiguedadEsNuevo ? 0 : (formData.antiguedadAnos ?? 0)
+
+    // Subir solo las imágenes pendientes (nuevas) a Supabase al guardar
+    const urlsExistentes = formData.imagenes
+    const urlsNuevas: string[] = []
+    for (const p of pendingFiles) {
+      try {
+        const url = await uploadImageToSupabase(p.file)
+        urlsNuevas.push(url)
+        URL.revokeObjectURL(p.url)
+      } catch (error) {
+        console.error("Error subiendo imagen:", error)
+        alert("Error al subir las imágenes. Por favor intenta de nuevo.")
+        return
+      }
+    }
+    const urlsSupabase = [...urlsExistentes, ...urlsNuevas]
 
     onSave({
       title: formData.nombre,
@@ -221,35 +235,22 @@ export function PropertyModal({
         created_at: "",
       })),
     })
+    setPendingFiles([])
     onOpenChange(false)
   }
 
-  const handleImageUpload = async (files: FileList) => {
+  const handleImageUpload = (files: FileList) => {
     const fileArray = Array.from(files).filter(
       (f) => f.type === "image/png" || f.type === "image/jpeg" || f.type === "image/jpg"
     )
     if (fileArray.length === 0) return
 
-    let updatedImagenes = [...imagenes]
-
-    for (const file of fileArray) {
-      // Vista previa inmediata con blob URL mientras se sube
-      const blobUrl = URL.createObjectURL(file)
-      updatedImagenes = [...updatedImagenes, blobUrl]
-      setValue("imagenes", updatedImagenes)
-
-      try {
-        const url = await uploadImageToSupabase(file)
-        updatedImagenes = updatedImagenes.map((u) => (u === blobUrl ? url : u))
-        setValue("imagenes", updatedImagenes)
-      } catch (error) {
-        console.error("Error subiendo imagen:", error)
-        updatedImagenes = updatedImagenes.filter((u) => u !== blobUrl)
-        setValue("imagenes", updatedImagenes)
-      } finally {
-        URL.revokeObjectURL(blobUrl)
-      }
-    }
+    const nuevos = fileArray.map((file) => ({
+      id: crypto.randomUUID(),
+      url: URL.createObjectURL(file),
+      file,
+    }))
+    setPendingFiles((prev) => [...prev, ...nuevos])
   }
 
   const handleDragDrop = (e: React.DragEvent) => {
@@ -571,38 +572,53 @@ export function PropertyModal({
           <div>
             <h3 className="text-lg font-bold text-foreground mb-4">Imágenes</h3>
             
-            {/* Vista previa de imágenes subidas */}
-            {imagenes.length > 0 && (
+            {(imagenes.length > 0 || pendingFiles.length > 0) && (
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
                 {imagenes.map((imagen, idx) => (
-                  <div key={idx} className="relative group">
+                  <div key={`exist-${idx}-${imagen.slice(-20)}`} className="relative group">
                     <img
                       src={imagen}
                       alt={`Preview ${idx + 1}`}
-                      className="w-full h-24 object-cover rounded-md"
+                      className="w-full h-24 object-cover rounded-md bg-muted"
                     />
                     <button
                       type="button"
                       onClick={async (e) => {
                         e.preventDefault()
                         e.stopPropagation()
-                        
-                        const isBlobUrl = imagen.startsWith("blob:")
-                        const confirmed = isBlobUrl
-                          ? confirm("¿Deseas eliminar esta imagen?")
-                          : confirm("¿Deseas eliminar esta imagen de Supabase?")
-                        if (!confirmed) return
-                        
+                        if (!confirm("¿Deseas eliminar esta imagen?")) return
                         try {
-                          if (!isBlobUrl) {
-                            await deleteImageFromSupabase(imagen)
-                          }
-                          const nuevasImagenes = imagenes.filter((_, i) => i !== idx)
-                          setValue("imagenes", nuevasImagenes)
+                          await deleteImageFromSupabase(imagen)
+                          setValue(
+                            "imagenes",
+                            imagenes.filter((_, i) => i !== idx)
+                          )
                         } catch (error) {
                           console.error("Error deleting image:", error)
                           alert("Error al eliminar la imagen. Por favor intenta de nuevo.")
                         }
+                      }}
+                      className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+                {pendingFiles.map((p) => (
+                  <div key={p.id} className="relative group">
+                    <img
+                      src={p.url}
+                      alt={`Nueva imagen`}
+                      className="w-full h-24 object-cover rounded-md bg-muted"
+                    />
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        if (!confirm("¿Deseas eliminar esta imagen?")) return
+                        URL.revokeObjectURL(p.url)
+                        setPendingFiles((prev) => prev.filter((x) => x.id !== p.id))
                       }}
                       className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity"
                     >
