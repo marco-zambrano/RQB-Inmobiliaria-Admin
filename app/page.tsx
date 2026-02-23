@@ -10,7 +10,7 @@ import { PropertyModal } from "@/components/property-modal"
 import { DeleteDialog } from "@/components/delete-dialog"
 import { DashboardView } from "@/components/dashboard-view"
 import { initialProperties } from "@/lib/data"
-import { supabase } from "@/lib/supabaseClient"
+import { supabase, STORAGE_BUCKET, extractFilePathFromStorageUrl } from "@/lib/supabaseClient"
 import type { Property } from "@/lib/types"
 import { useIsMobile } from "@/hooks/use-mobile"
 import AuthGuard from "@/components/auth-guard"
@@ -114,9 +114,7 @@ export default function AdminPage() {
         if (images) {
           for (const im of images) {
             try {
-              const parts = im.image_url.split("/")
-              const fileName = parts[parts.length - 1]
-              pathsToRemove.push(`images/${fileName}`)
+              pathsToRemove.push(extractFilePathFromStorageUrl(im.image_url))
             } catch (e) {
               // ignore
             }
@@ -126,9 +124,7 @@ export default function AdminPage() {
         if (videos) {
           for (const v of videos) {
             try {
-              const parts = v.video_url.split("/")
-              const fileName = parts[parts.length - 1]
-              pathsToRemove.push(`videos/${fileName}`)
+              pathsToRemove.push(extractFilePathFromStorageUrl(v.video_url))
             } catch (e) {
               // ignore
             }
@@ -136,7 +132,7 @@ export default function AdminPage() {
         }
 
         if (pathsToRemove.length > 0) {
-          const { error: storageErr } = await supabase.storage.from("properties").remove(pathsToRemove)
+          const { error: storageErr } = await supabase.storage.from(STORAGE_BUCKET).remove(pathsToRemove)
           if (storageErr) console.error("Storage remove error:", storageErr)
         }
 

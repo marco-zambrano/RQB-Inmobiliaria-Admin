@@ -73,7 +73,7 @@ export function PropertiesTable({ properties, onEdit, onDelete }: PropertiesTabl
             <TableHead className="text-muted-foreground font-normal text-sm">Titulo</TableHead>
             <TableHead className="text-muted-foreground font-normal text-sm">Precio</TableHead>
             <TableHead className="text-muted-foreground font-normal text-sm">Tipo</TableHead>
-            <TableHead className="text-muted-foreground font-normal text-sm">Zona</TableHead>
+            <TableHead className="text-muted-foreground font-normal text-sm">Provincia</TableHead>
             <TableHead className="text-muted-foreground font-normal text-sm">Estado</TableHead>
             <TableHead className="text-muted-foreground font-normal text-sm">Fecha</TableHead>
             <TableHead className="text-muted-foreground font-normal text-sm">Fecha Vendida</TableHead>
