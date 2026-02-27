@@ -36,7 +36,7 @@ const propertySchema = z.object({
   ciudad: z.string().min(1, "Selecciona una ciudad"),
   tipo: z.enum(["local", "apartamento", "casa", "terreno", "casa rentera"]),
   estado: z.enum(["disponible", "vendida", "negociación"]),
-  ventaType: z.enum(["al contado", "transacción bancaria", "BIESS", "fraccionado", "promesa de compra-venta"]).optional(),
+  ventaType: z.enum(["Al contado", "Transacción bancaria", "BIESS", "Fraccionado", "Promesa de compra-venta"]).optional(),
   areaTotales: z.number().nonnegative().optional(),
   areaConstruccion: z.number().nonnegative().optional(),
   habitaciones: z.number().nonnegative().optional(),
@@ -354,11 +354,11 @@ export function PropertyModal({
                         <SelectValue placeholder="Seleccionar tipo de venta" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="al contado">Al contado</SelectItem>
-                        <SelectItem value="transacción bancaria">Transacción bancaria</SelectItem>
+                        <SelectItem value="Al contado">Al contado</SelectItem>
+                        <SelectItem value="Transacción bancaria">Transacción bancaria</SelectItem>
                         <SelectItem value="BIESS">BIESS</SelectItem>
-                        <SelectItem value="fraccionado">Fraccionado</SelectItem>
-                        <SelectItem value="promesa de compra-venta">Promesa de compra-venta</SelectItem>
+                        <SelectItem value="Fraccionado">Fraccionado</SelectItem>
+                        <SelectItem value="Promesa de compra-venta">Promesa de compra-venta</SelectItem>
                       </SelectContent>
                     </Select>
                   )}
