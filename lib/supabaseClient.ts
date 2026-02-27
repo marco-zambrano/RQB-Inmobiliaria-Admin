@@ -140,12 +140,10 @@ export async function deleteImageFromSupabase(imageUrl: string): Promise<void> {
       .from(STORAGE_BUCKET)
       .remove([filePath]);
   
-    
     if (error) {
       console.error("Error de Supabase al eliminar archivo:", error);
       throw new Error(`Error deleting file from storage: ${error.message}`);
     }
-
     console.log("Archivo eliminado exitosamente del storage:", data);
   } catch (error) {
     console.error("Error completo al eliminar imagen:", error);
@@ -174,6 +172,13 @@ export async function deleteVideoFromSupabase(videoUrl: string): Promise<void> {
     throw error;
   }
 }
+
+
+
+
+
+
+
 
 export async function saveVideoToDatabase(propertyId: string, videoUrl: string): Promise<PropertyVideo> {
   try {

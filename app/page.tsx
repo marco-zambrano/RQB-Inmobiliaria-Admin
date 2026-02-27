@@ -13,10 +13,11 @@ import { supabase, STORAGE_BUCKET, extractFilePathFromStorageUrl } from "@/lib/s
 import type { Property } from "@/lib/types"
 import { useIsMobile } from "@/hooks/use-mobile"
 import AuthGuard from "@/components/auth-guard"
+import { useProperties } from "@/hooks/use-properties"
 
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState("propiedades")
-  const [properties, setProperties] = useState<Property[]>([])
+  // const [properties, setProperties] = useState<Property[]>([])
 
   // Filters
   const [searchQuery, setSearchQuery] = useState("")
@@ -31,41 +32,7 @@ export default function AdminPage() {
   const [deletingProperty, setDeletingProperty] = useState<Property | null>(null)
 
   const isMobile = useIsMobile()
-
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const { data, error } = await supabase
-          .from("properties")
-          .select(`*, property_images(id, property_id, image_url, created_at), property_videos(id, property_id, video_url, created_at)`)
-          .order("created_at", { ascending: false })
-
-        if (error) throw error
-
-        const props = (data || []).map((p: any) => ({
-          ...p,
-          images: (p.property_images || []).map((i: any) => ({
-            id: i.id ?? "",
-            property_id: p.id,
-            image_url: i.image_url,
-            created_at: i.created_at ?? "",
-          })),
-          videos: (p.property_videos || []).map((v: any) => ({
-            id: v.id ?? "",
-            property_id: p.id,
-            video_url: v.video_url,
-            created_at: v.created_at ?? "",
-          })),
-        }))
-
-        setProperties(props)
-      } catch (err) {
-        console.error("Load error:", err)
-      }
-    }
-
-    void load()
-  }, [])
+  const { properties, setProperties, loading, error } = useProperties()
 
   const filteredProperties = useMemo(() => {
     return properties.filter((p) => {
