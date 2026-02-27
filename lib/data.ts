@@ -1,5 +1,3 @@
-import type { Property } from "./types"
-
 // Provincias y ciudades del Ecuador
 export const provinciasEcuador = {
   Azuay: [
@@ -143,105 +141,10 @@ export const provinciasEcuador = {
   ]
 };
 
-export const initialProperties: Property[] = [
-  {
-    id: "1",
-    nombre: "Casa Moderna en Pichincha",
-    descripcion: "Hermosa casa moderna con acabados de lujo, amplios espacios y jardin privado. Ubicada en una de las mejores zonas del norte de la ciudad con facil acceso a vias principales.",
-    precio: 450000,
-    tipo: "casa",
-    provincia: "Pichincha",
-    ciudad: "Quito",
-    habitaciones: 4,
-    banos: 3,
-    areaTotales: 300,
-    areaConstruccion: 250,
-    antiguedad: {
-      esNuevo: false,
-      anos: 5,
-    },
-    direccion: "Calle 120 #45-67, Zona Norte",
-    imagenes: ["/images/casa-moderna.jpg"],
-    caracteristicas: {
-      garaje: true,
-      piscina: true,
-      patio: true,
-      seguridadPrivada: true,
-      balcon: false,
-      dospisos: false,
-      trespisos: false,
-    },
-    estado: "disponible",
-    fecha: "2024-01-15",
-    mapsUrl: "",
-  },
-  {
-    id: "2",
-    nombre: "Apartamento Penthouse Guayas",
-    descripcion: "Espectacular penthouse con vista panoramica al centro de la ciudad. Acabados de primera, terraza amplia y zonas comunes de lujo.",
-    precio: 380000,
-    tipo: "apartamento",
-    provincia: "Guayas",
-    ciudad: "Guayaquil",
-    habitaciones: 3,
-    banos: 2,
-    areaTotales: 200,
-    areaConstruccion: 180,
-    antiguedad: {
-      esNuevo: true,
-      anos: 0,
-    },
-    direccion: "Segundo piso, Zona Centro",
-    imagenes: ["/images/apartamento-penthouse.jpg"],
-    caracteristicas: {
-      garaje: true,
-      piscina: false,
-      patio: false,
-      seguridadPrivada: true,
-      balcon: true,
-      dospisos: false,
-      trespisos: false,
-    },
-    estado: "disponible",
-    fecha: "2024-01-20",
-    mapsUrl: "",
-  },
-  {
-    id: "3",
-    nombre: "Casa Campestre Manabi",
-    descripcion: "Acogedora casa campestre con diseno contemporaneo en zona exclusiva. Amplio jardin, chimenea y zona BBQ perfecta para familias.",
-    precio: 520000,
-    tipo: "negocio",
-    provincia: "Manabi",
-    ciudad: "Manta",
-    habitaciones: 5,
-    banos: 4,
-    areaTotales: 400,
-    areaConstruccion: 350,
-    antiguedad: {
-      esNuevo: false,
-      anos: 10,
-    },
-    direccion: "Zona Costera Premium",
-    imagenes: ["/images/casa-campestre.jpg"],
-    caracteristicas: {
-      garaje: true,
-      piscina: false,
-      patio: true,
-      seguridadPrivada: false,
-      balcon: true,
-      dospisos: true,
-      trespisos: false,
-    },
-    estado: "vendida",
-    fechaVendida: "2025-02-03",
-    fecha: "2024-02-01",
-    mapsUrl: "",
-  },
-]
-
 export const tiposPropiedad: { value: string; label: string }[] = [
-  { value: "negocio", label: "Negocio" },
+  { value: "local", label: "Local" },
   { value: "apartamento", label: "Apartamento" },
   { value: "casa", label: "Casa" },
+  { value: "casa rentera", label: "Casa rentera" },
+  { value: "terreno", label: "Terreno" },
 ]
