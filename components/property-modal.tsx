@@ -118,6 +118,7 @@ export function PropertyModal({
   const [pendingVideos, setPendingVideos] = useState<{ id: string; url: string; file: File }[]>([])
   const [existingVideos, setExistingVideos] = useState<string[]>([])
   const [videosToDelete, setVideosToDelete] = useState<string[]>([])
+  const [isSaving, setIsSaving] = useState(false)
 
   const ciudadesDisponibles = provincia
     ? (provinciasEcuador[provincia as keyof typeof provinciasEcuador] || [])
@@ -208,133 +209,119 @@ export function PropertyModal({
   }, [property, open, reset])
 
   const onSubmit = async (formData: PropertyFormData) => {
-    const features: string[] = []
-    if (formData.garaje) features.push("garaje")
-    if (formData.piscina) features.push("piscina")
-    if (formData.patio) features.push("patio")
-    if (formData.seguridadPrivada) features.push("seguridadPrivada")
-    if (formData.balcon) features.push("balcon")
-    
-    // Agregar número de pisos a las características
-    if (formData.numeroPisos && formData.numeroPisos > 0) {
-      const pisosText = formData.numeroPisos === 1 ? "1 piso" : `${formData.numeroPisos} pisos`
-      features.push(pisosText)
-    }
+    if (isSaving) return
+    setIsSaving(true)
 
-    const antiquity_years = formData.antiguedadEsNuevo ? 0 : (formData.antiguedadAnos ?? 0)
-
-    // Subir solo las imágenes pendientes (nuevas) a Supabase al guardar
-    const urlsExistentes = formData.imagenes
-    const urlsNuevas: string[] = []
-    for (const p of pendingFiles) {
-      try {
-        const url = await uploadImageToSupabase(p.file)
-        urlsNuevas.push(url)
-        URL.revokeObjectURL(p.url)
-      } catch (error) {
-        console.error("Error subiendo imagen:", error)
-        alert("Error al subir las imágenes. Por favor intenta de nuevo.")
-        return
-      }
-    }
-    const urlsSupabase = [...urlsExistentes, ...urlsNuevas]
-
-    // Subir solo los videos pendientes (nuevos) a Supabase al guardar
-    const videosExistentes = existingVideos
-    const videosNuevos: string[] = []
-    for (const p of pendingVideos) {
-      try {
-        const url = await uploadVideoToSupabase(p.file)
-        videosNuevos.push(url)
-        URL.revokeObjectURL(p.url)
-      } catch (error) {
-        console.error("Error subiendo video:", error)
-        alert("Error al subir los videos. Por favor intenta de nuevo.")
-        return
-      }
-    }
-    const videosSupabase = [...videosExistentes, ...videosNuevos]
-
-    // Normalizar la URL de Google Maps a una URL válida para iframe (vía API para evitar CORS)
-    let mapUrlValue = ""
-    if (formData.mapsUrl && formData.mapsUrl.trim() !== "") {
-      // Si ya es una URL de embed válida, usarla directamente
-      if (formData.mapsUrl.includes("google.com") && formData.mapsUrl.includes("/maps/embed")) {
-        mapUrlValue = formData.mapsUrl.trim()
-      } else {
-        // Si no, procesarla a través del API
-        const res = await fetch("/api/maps-embed", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ url: formData.mapsUrl.trim() }),
-        })
-        const data = await res.json().catch(() => ({ embedUrl: null }))
-        mapUrlValue = data.embedUrl ?? ""
-      }
-    }
-
-    const propertyData: Omit<Property, "id"> = {
-      title: formData.title,
-      description: formData.descripcion ?? "",
-      price: formData.precio || 0,
-      property_type: formData.tipo as PropertyType,
-      province: formData.provincia,
-      city: formData.ciudad,
-      bedrooms: formData.habitaciones ?? null,
-      bathrooms: formData.banos ?? null,
-      sqm_total: formData.areaTotales ?? null,
-      sqm_built: formData.areaConstruccion ?? null,
-      antiquity_years,
-      venta_type: formData.ventaType ?? null,
-      property_owner: formData.propertyOwner ?? null,
-      address: formData.direccion || "",
-      features,
-      status: formData.estado as PropertyStatus,
-      map_url: mapUrlValue,
-      interest_level: property?.interest_level ?? 0,
-      sold_at: property?.sold_at ?? null,
-      created_at: property?.created_at ?? new Date().toISOString(),
-      images: urlsSupabase.map((url) => ({
-        id: "",
-        property_id: property?.id ?? "",
-        image_url: url,
-        created_at: "",
-      })),
-    }
-    
-    // Eliminar videos marcados para eliminación
-    if (videosToDelete.length > 0 && property?.videos) {
-      for (const videoUrl of videosToDelete) {
-        try {
-          console.log("Eliminando video del storage:", videoUrl)
-          await deleteVideoFromSupabase(videoUrl)
-          console.log("Video eliminado del storage correctamente")
-          
-          // Eliminar de la base de datos
-          const videoToDelete = property.videos.find(v => v.video_url === videoUrl)
-          if (videoToDelete?.id) {
-            await deleteVideoFromDatabase(videoToDelete.id)
-            console.log("Video eliminado de la base de datos correctamente")
-          }
-        } catch (error) {
-          console.error("Error eliminando video:", videoUrl, error)
-          // Continuar con otros videos incluso si uno falla
-        }
-      }
-    }
-    
-    // Guardar videos nuevos en la base de datos
-    if (videosNuevos.length > 0) {
-      // Pasar los videos nuevos al onSave para que los gestione externamente
-      onSave(propertyData, videosNuevos)
-    } else {
-      onSave(propertyData)
-    }
-    
-    setPendingFiles([])
-    setPendingVideos([])
-    setVideosToDelete([])
+    // Cerrar el modal INMEDIATAMENTE
     onOpenChange(false)
+
+    try {
+      const features: string[] = []
+      if (formData.garaje) features.push("garaje")
+      if (formData.piscina) features.push("piscina")
+      if (formData.patio) features.push("patio")
+      if (formData.seguridadPrivada) features.push("seguridadPrivada")
+      if (formData.balcon) features.push("balcon")
+      if (formData.numeroPisos && formData.numeroPisos > 0) {
+        features.push(formData.numeroPisos === 1 ? "1 piso" : `${formData.numeroPisos} pisos`)
+      }
+
+      const antiquity_years = formData.antiguedadEsNuevo ? 0 : (formData.antiguedadAnos ?? 0)
+
+      // Subir imágenes y videos en PARALELO con Promise.all
+      const urlsExistentes = formData.imagenes.filter((url) => !url.startsWith("blob:"))
+
+      const [urlsNuevas, videosNuevos, mapResult] = await Promise.all([
+        // Subir todas las imágenes pendientes en paralelo
+        Promise.all(
+          pendingFiles.map(async (p) => {
+            const url = await uploadImageToSupabase(p.file)
+            URL.revokeObjectURL(p.url)
+            return url
+          })
+        ),
+        // Subir todos los videos pendientes en paralelo
+        Promise.all(
+          pendingVideos.map(async (p) => {
+            const url = await uploadVideoToSupabase(p.file)
+            URL.revokeObjectURL(p.url)
+            return url
+          })
+        ),
+        // Llamada a maps en paralelo también
+        (async () => {
+          if (!formData.mapsUrl?.trim()) return ""
+          if (formData.mapsUrl.includes("google.com") && formData.mapsUrl.includes("/maps/embed")) {
+            return formData.mapsUrl.trim()
+          }
+          const res = await fetch("/api/maps-embed", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ url: formData.mapsUrl.trim() }),
+          })
+          const data = await res.json().catch(() => ({ embedUrl: null }))
+          return data.embedUrl ?? ""
+        })(),
+      ])
+
+      const urlsSupabase = [...urlsExistentes, ...urlsNuevas]
+      const videosSupabase = [...existingVideos, ...videosNuevos]
+
+      // Eliminar videos marcados en paralelo con el resto
+      if (videosToDelete.length > 0 && property?.videos) {
+        await Promise.all(
+          videosToDelete.map(async (videoUrl) => {
+            try {
+              await deleteVideoFromSupabase(videoUrl)
+              const videoToDelete = property.videos?.find((v) => v.video_url === videoUrl)
+              if (videoToDelete?.id) await deleteVideoFromDatabase(videoToDelete.id)
+            } catch (err) {
+              console.error("Error eliminando video:", videoUrl, err)
+            }
+          })
+        )
+      }
+
+      const propertyData: Omit<Property, "id"> = {
+        title: formData.title,
+        description: formData.descripcion ?? "",
+        price: formData.precio || 0,
+        property_type: formData.tipo as PropertyType,
+        province: formData.provincia,
+        city: formData.ciudad,
+        bedrooms: formData.habitaciones ?? null,
+        bathrooms: formData.banos ?? null,
+        sqm_total: formData.areaTotales ?? null,
+        sqm_built: formData.areaConstruccion ?? null,
+        antiquity_years,
+        venta_type: formData.ventaType ?? null,
+        property_owner: formData.propertyOwner ?? null,
+        address: formData.direccion || "",
+        features,
+        status: formData.estado as PropertyStatus,
+        map_url: mapResult,
+        interest_level: property?.interest_level ?? 0,
+        sold_at: property?.sold_at ?? null,
+        created_at: property?.created_at ?? new Date().toISOString(),
+        images: urlsSupabase.map((url) => ({
+          id: "",
+          property_id: property?.id ?? "",
+          image_url: url,
+          created_at: "",
+        })),
+      }
+
+      onSave(propertyData, videosNuevos.length > 0 ? videosNuevos : undefined)
+
+    } catch (err) {
+      console.error("Save error:", err)
+      alert("Error al guardar la propiedad. Revisa la consola.")
+    } finally {
+      setPendingFiles([])
+      setPendingVideos([])
+      setVideosToDelete([])
+      setIsSaving(false)
+    }
   }
 
   const handleImageUpload = (files: FileList) => {
@@ -940,6 +927,7 @@ export function PropertyModal({
             </Button>
             <Button
               type="submit"
+              disabled={isSaving}
               className="flex-1 bg-foreground text-card hover:bg-foreground/90 cursor-pointer"
             >
               {property ? "Guardar cambios" : "Guardar propiedad"}

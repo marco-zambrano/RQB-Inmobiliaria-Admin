@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, useEffect } from "react"
+import { useState, useMemo } from "react"
 import { Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { AdminSidebar } from "@/components/admin-sidebar"
@@ -18,13 +18,13 @@ import { useProperties } from "@/hooks/use-properties"
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState("propiedades")
 
-  // Filters
+  // Filters hooks
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedProvincia, setSelectedProvincia] = useState("all")
   const [selectedEstado, setSelectedEstado] = useState("all")
   const [selectedTipo, setSelectedTipo] = useState("all")
 
-  // Modals
+  // Modals hooks
   const [modalOpen, setModalOpen] = useState(false)
   const [editingProperty, setEditingProperty] = useState<Property | null>(null)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
@@ -33,6 +33,7 @@ export default function AdminPage() {
   const isMobile = useIsMobile()
   const { properties, setProperties, loading, error } = useProperties()
 
+  // Filters
   const filteredProperties = useMemo(() => {
     return properties.filter((p) => {
       const matchesSearch = (p.title || "")
@@ -48,16 +49,22 @@ export default function AdminPage() {
     })
   }, [properties, searchQuery, selectedProvincia, selectedEstado, selectedTipo])
 
+  function handleClearFilters() {
+    setSearchQuery("")
+    setSelectedProvincia("all")
+    setSelectedEstado("all")
+    setSelectedTipo("all")
+  }
+
+  // Modals
   function handleAdd() {
     setEditingProperty(null)
     setModalOpen(true)
   }
-
   function handleEdit(property: Property) {
     setEditingProperty(property)
     setModalOpen(true)
   }
-
   function handleDelete(property: Property) {
     setDeletingProperty(property)
     setDeleteDialogOpen(true)
@@ -104,7 +111,6 @@ export default function AdminPage() {
     }
   }
 
-  // ✅ Async directo, sin anidamiento
   async function handleSave(data: Omit<Property, "id">, videos?: string[]) {
     try {
       if (editingProperty) {
@@ -196,13 +202,6 @@ export default function AdminPage() {
       console.error("Save error:", err)
       alert("Error al guardar la propiedad. Revisa la consola.")
     }
-  }
-
-  function handleClearFilters() {
-    setSearchQuery("")
-    setSelectedProvincia("all")
-    setSelectedEstado("all")
-    setSelectedTipo("all")
   }
 
   return (
