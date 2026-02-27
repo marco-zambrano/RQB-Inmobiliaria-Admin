@@ -1,61 +1,21 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { useForm, Controller } from "react-hook-form"
-import { zodResolver } from "@hookform/resolvers/zod"
-import * as z from "zod"
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
+import { Controller } from "react-hook-form"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { provinciasEcuador, tiposPropiedad } from "@/lib/data"
 import type { Property, PropertyStatus, PropertyType } from "@/lib/types"
 import { Upload, X } from "lucide-react"
 import { MapPreview } from "./map-preview"
-import { uploadImageToSupabase, deleteImageFromSupabase, uploadVideoToSupabase, deleteVideoFromSupabase, saveVideoToDatabase, deleteVideoFromDatabase } from "@/lib/supabaseClient"
-
-const propertySchema = z.object({
-  title: z.string().min(3, "El nombre debe tener al menos 3 caracteres"),
-  precio: z.number().min(0, "El precio debe ser mayor a 0"),
-  direccion: z.string().optional(),
-  provincia: z.string().min(1, "Selecciona una provincia"),
-  ciudad: z.string().min(1, "Selecciona una ciudad"),
-  tipo: z.enum(["local", "apartamento", "casa", "terreno", "casa rentera"]),
-  estado: z.enum(["disponible", "vendida", "negociación"]),
-  ventaType: z.enum(["Al contado", "Transacción bancaria", "BIESS", "Fraccionado", "Promesa de compra-venta"]).optional(),
-  propertyOwner: z.string().optional(),
-  areaTotales: z.number().nonnegative().optional(),
-  areaConstruccion: z.number().nonnegative().optional(),
-  habitaciones: z.number().nonnegative().optional(),
-  banos: z.number().nonnegative().optional(),
-  antiguedadEsNuevo: z.boolean(),
-  antiguedadAnos: z.number().nonnegative().optional(),
-  descripcion: z.string().optional(),
-  garaje: z.boolean(),
-  piscina: z.boolean(),
-  patio: z.boolean(),
-  seguridadPrivada: z.boolean(),
-  balcon: z.boolean(),
-  numeroPisos: z.number().nonnegative().optional(),
-  mapsUrl: z.string().optional(),
-  imagenes: z.array(z.string()),
-})
-
-type PropertyFormData = z.infer<typeof propertySchema>
+import { deleteImageFromSupabase } from "@/lib/supabaseClient"
+import { usePropertyForm } from "@/hooks/modal/use-property-form"
+import { usePropertyMedia } from "@/hooks/modal/use-property-media"
 
 interface PropertyModalProps {
   open: boolean
@@ -64,155 +24,31 @@ interface PropertyModalProps {
   onSave: (property: Omit<Property, "id">, videos?: string[]) => void
 }
 
-export function PropertyModal({
-  open,
-  onOpenChange,
-  property,
-  onSave,
-}: PropertyModalProps) {
-  const {
-    register,
-    control,
-    handleSubmit,
-    watch,
-    reset,
-    setValue,
-    formState: { errors },
-  } = useForm<PropertyFormData>({
-    resolver: zodResolver(propertySchema),
-    defaultValues: {
-      title: "",
-      precio: undefined,
-      direccion: "",
-      provincia: "",
-      ciudad: "",
-      tipo: "local",
-      estado: "disponible",
-      ventaType: undefined,
-      propertyOwner: undefined,
-      areaTotales: undefined,
-      areaConstruccion: undefined,
-      habitaciones: undefined,
-      banos: undefined,
-      antiguedadEsNuevo: false,
-      antiguedadAnos: undefined,
-      descripcion: "",
-      garaje: false,
-      piscina: false,
-      patio: false,
-      seguridadPrivada: false,
-      balcon: false,
-      numeroPisos: undefined,
-      mapsUrl: "",
-      imagenes: [],
-    },
-  })
+export function PropertyModal({ open, onOpenChange, property, onSave }: PropertyModalProps) {
+  const [isSaving, setIsSaving] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const videoInputRef = useRef<HTMLInputElement>(null)
 
+  const form = usePropertyForm(property, open)
+  const media = usePropertyMedia(property)
+
+  const { register, control, handleSubmit, watch, setValue, formState: { errors } } = form
   const provincia = watch("provincia")
   const antiguedadEsNuevo = watch("antiguedadEsNuevo")
   const imagenes = watch("imagenes")
   const mapsUrl = watch("mapsUrl")
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const videoInputRef = useRef<HTMLInputElement>(null)
-  const [pendingFiles, setPendingFiles] = useState<{ id: string; url: string; file: File }[]>([])
-  const [pendingVideos, setPendingVideos] = useState<{ id: string; url: string; file: File }[]>([])
-  const [existingVideos, setExistingVideos] = useState<string[]>([])
-  const [videosToDelete, setVideosToDelete] = useState<string[]>([])
-  const [isSaving, setIsSaving] = useState(false)
 
   const ciudadesDisponibles = provincia
     ? (provinciasEcuador[provincia as keyof typeof provinciasEcuador] || [])
     : []
 
   useEffect(() => {
-    setPendingFiles((prev) => {
-      prev.forEach((p) => URL.revokeObjectURL(p.url))
-      return []
-    })
-    setPendingVideos((prev) => {
-      prev.forEach((p) => URL.revokeObjectURL(p.url))
-      return []
-    })
-    setVideosToDelete([])
-    if (property) {
-      const featuresSet = new Set(property.features ?? [])
-      
-      // Extraer número de pisos de las características
-      let numeroPisos: number | undefined
-      const pisosFeature = Array.from(featuresSet).find(f => f.includes("piso"))
-      if (pisosFeature) {
-        const match = pisosFeature.match(/(\d+)\s*piso?s?/)
-        if (match) {
-          numeroPisos = parseInt(match[1])
-        }
-      }
-      
-      console.log("Videos", property)
+    if (open) media.initMedia()
+  }, [property, open])
 
-      // Cargar videos existentes
-      setExistingVideos((property.videos ?? []).map((v) => v.video_url))
-      
-      reset({
-        title: property.title,
-        precio: property.price,
-        direccion: property.address,
-        provincia: property.province,
-        ciudad: property.city,
-        ventaType: (property.venta_type as any),
-        propertyOwner: property.property_owner ?? undefined,
-        tipo: property.property_type,
-        estado: property.status,
-        areaTotales: property.sqm_total ?? undefined,
-        areaConstruccion: property.sqm_built ?? undefined,
-        habitaciones: property.bedrooms ?? undefined,
-        banos: property.bathrooms ?? undefined,
-        antiguedadEsNuevo: property.antiquity_years === 0,
-        antiguedadAnos: property.antiquity_years || undefined,
-        descripcion: property.description ?? "",
-        garaje: featuresSet.has("garaje"),
-        piscina: featuresSet.has("piscina"),
-        patio: featuresSet.has("patio"),
-        seguridadPrivada: featuresSet.has("seguridadPrivada"),
-        balcon: featuresSet.has("balcon"),
-        numeroPisos: numeroPisos,
-        mapsUrl: property.map_url || "",
-        imagenes: (property.images ?? []).map((i) => i.image_url),
-      })
-    } else {
-      reset({
-        title: "",
-        precio: undefined,
-        direccion: "",
-        provincia: "",
-        ciudad: "",
-        tipo: "apartamento",
-        estado: "disponible",
-        ventaType: undefined,
-        propertyOwner: undefined,
-        areaTotales: undefined,
-        areaConstruccion: undefined,
-        habitaciones: undefined,
-        banos: undefined,
-        antiguedadEsNuevo: false,
-        antiguedadAnos: undefined,
-        descripcion: "",
-        garaje: false,
-        piscina: false,
-        patio: false,
-        seguridadPrivada: false,
-        balcon: false,
-        numeroPisos: undefined,
-        mapsUrl: "",
-        imagenes: [],
-      })
-    }
-  }, [property, open, reset])
-
-  const onSubmit = async (formData: PropertyFormData) => {
+  const onSubmit = async (formData: any) => {
     if (isSaving) return
     setIsSaving(true)
-
-    // Cerrar el modal INMEDIATAMENTE
     onOpenChange(false)
 
     try {
@@ -222,38 +58,17 @@ export function PropertyModal({
       if (formData.patio) features.push("patio")
       if (formData.seguridadPrivada) features.push("seguridadPrivada")
       if (formData.balcon) features.push("balcon")
-      if (formData.numeroPisos && formData.numeroPisos > 0) {
+      if (formData.numeroPisos > 0)
         features.push(formData.numeroPisos === 1 ? "1 piso" : `${formData.numeroPisos} pisos`)
-      }
 
       const antiquity_years = formData.antiguedadEsNuevo ? 0 : (formData.antiguedadAnos ?? 0)
 
-      // Subir imágenes y videos en PARALELO con Promise.all
-      const urlsExistentes = formData.imagenes.filter((url) => !url.startsWith("blob:"))
-
-      const [urlsNuevas, videosNuevos, mapResult] = await Promise.all([
-        // Subir todas las imágenes pendientes en paralelo
-        Promise.all(
-          pendingFiles.map(async (p) => {
-            const url = await uploadImageToSupabase(p.file)
-            URL.revokeObjectURL(p.url)
-            return url
-          })
-        ),
-        // Subir todos los videos pendientes en paralelo
-        Promise.all(
-          pendingVideos.map(async (p) => {
-            const url = await uploadVideoToSupabase(p.file)
-            URL.revokeObjectURL(p.url)
-            return url
-          })
-        ),
-        // Llamada a maps en paralelo también
+      const [{ urlsNuevas, videosNuevos }, mapResult] = await Promise.all([
+        media.uploadAll(),
         (async () => {
           if (!formData.mapsUrl?.trim()) return ""
-          if (formData.mapsUrl.includes("google.com") && formData.mapsUrl.includes("/maps/embed")) {
+          if (formData.mapsUrl.includes("google.com") && formData.mapsUrl.includes("/maps/embed"))
             return formData.mapsUrl.trim()
-          }
           const res = await fetch("/api/maps-embed", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -264,23 +79,11 @@ export function PropertyModal({
         })(),
       ])
 
-      const urlsSupabase = [...urlsExistentes, ...urlsNuevas]
-      const videosSupabase = [...existingVideos, ...videosNuevos]
+      await media.deleteMarkedVideos()
 
-      // Eliminar videos marcados en paralelo con el resto
-      if (videosToDelete.length > 0 && property?.videos) {
-        await Promise.all(
-          videosToDelete.map(async (videoUrl) => {
-            try {
-              await deleteVideoFromSupabase(videoUrl)
-              const videoToDelete = property.videos?.find((v) => v.video_url === videoUrl)
-              if (videoToDelete?.id) await deleteVideoFromDatabase(videoToDelete.id)
-            } catch (err) {
-              console.error("Error eliminando video:", videoUrl, err)
-            }
-          })
-        )
-      }
+      const urlsExistentes = formData.imagenes.filter((url: string) => !url.startsWith("blob:"))
+      const urlsSupabase = [...urlsExistentes, ...urlsNuevas]
+      const videosSupabase = [...media.existingVideos, ...videosNuevos]
 
       const propertyData: Omit<Property, "id"> = {
         title: formData.title,
@@ -304,64 +107,19 @@ export function PropertyModal({
         sold_at: property?.sold_at ?? null,
         created_at: property?.created_at ?? new Date().toISOString(),
         images: urlsSupabase.map((url) => ({
-          id: "",
-          property_id: property?.id ?? "",
-          image_url: url,
-          created_at: "",
+          id: "", property_id: property?.id ?? "", image_url: url, created_at: "",
         })),
       }
 
-      onSave(propertyData, videosNuevos.length > 0 ? videosNuevos : undefined)
+      onSave(propertyData, videosSupabase)
 
     } catch (err) {
       console.error("Save error:", err)
       alert("Error al guardar la propiedad. Revisa la consola.")
     } finally {
-      setPendingFiles([])
-      setPendingVideos([])
-      setVideosToDelete([])
+      media.reset()
       setIsSaving(false)
     }
-  }
-
-  const handleImageUpload = (files: FileList) => {
-    const fileArray = Array.from(files).filter(
-      (f) => f.type === "image/png" || f.type === "image/jpeg" || f.type === "image/jpg" || f.type === "image/webp" || f.type === "image/avif"
-    )
-    if (fileArray.length === 0) return
-
-    const nuevos = fileArray.map((file) => ({
-      id: crypto.randomUUID(),
-      url: URL.createObjectURL(file),
-      file,
-    }))
-    setPendingFiles((prev) => [...prev, ...nuevos])
-  }
-
-  const handleVideoUpload = (files: FileList) => {
-    const fileArray = Array.from(files).filter(
-      (f) => f.type === "video/mp4" || f.type === "video/webm" || f.type === "video/ogg" || f.type === "video/quicktime"
-    )
-    if (fileArray.length === 0) return
-
-    const nuevos = fileArray.map((file) => ({
-      id: crypto.randomUUID(),
-      url: URL.createObjectURL(file),
-      file,
-    }))
-    setPendingVideos((prev) => [...prev, ...nuevos])
-  }
-
-  const handleDragDrop = (e: React.DragEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    const files = e.dataTransfer.files
-    if (files?.length) handleImageUpload(files)
-  }
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
   }
 
   return (
@@ -372,52 +130,30 @@ export function PropertyModal({
             {property ? `Editar Propiedad --> ${property.title}` : "Agregar Nueva Propiedad"}
           </DialogTitle>
         </DialogHeader>
+
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-6">
+
           {/* Información General */}
           <div>
-            <h3 className="text-lg font-bold text-foreground mb-4">
-              Información General
-            </h3>
+            <h3 className="text-lg font-bold text-foreground mb-4">Información General</h3>
             <div className="flex flex-col gap-4">
+
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="nombre" className="font-semibold text-foreground">
-                    Título
-                  </Label>
-                  <Input
-                    id="title"
-                    {...register("title")}
-                    className="bg-card"
-                  />
-                  {errors.title && (
-                    <span className="text-xs text-red-500">{errors.title.message}</span>
-                  )}
+                  <Label htmlFor="title" className="font-semibold text-foreground">Título</Label>
+                  <Input id="title" {...register("title")} className="bg-card" />
+                  {errors.title && <span className="text-xs text-red-500">{errors.title.message}</span>}
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="precio" className="font-semibold text-foreground">
-                    Precio
-                  </Label>
-                  <Input
-                    id="precio"
-                    type="number"
-                    {...register("precio", { valueAsNumber: true })}
-                    className="bg-card"
-                  />
-                  {errors.precio && (
-                    <span className="text-xs text-red-500">{errors.precio.message}</span>
-                  )}
+                  <Label htmlFor="precio" className="font-semibold text-foreground">Precio</Label>
+                  <Input id="precio" type="number" {...register("precio", { valueAsNumber: true })} className="bg-card" />
+                  {errors.precio && <span className="text-xs text-red-500">{errors.precio.message}</span>}
                 </div>
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="direccion" className="font-semibold text-foreground">
-                  Dirección
-                </Label>
-                <Input
-                  id="direccion"
-                  {...register("direccion")}
-                  className="bg-card"
-                />
+                <Label htmlFor="direccion" className="font-semibold text-foreground">Dirección</Label>
+                <Input id="direccion" {...register("direccion")} className="bg-card" />
               </div>
 
               <div className="flex flex-col gap-1.5">
@@ -443,15 +179,8 @@ export function PropertyModal({
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="propertyOwner" className="font-semibold text-foreground">
-                  Propietario
-                </Label>
-                <Input
-                  id="propertyOwner"
-                  {...register("propertyOwner")}
-                  placeholder="Nombre del propietario"
-                  className="bg-card"
-                />
+                <Label htmlFor="propertyOwner" className="font-semibold text-foreground">Propietario</Label>
+                <Input id="propertyOwner" {...register("propertyOwner")} placeholder="Nombre del propietario" className="bg-card" />
               </div>
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -467,17 +196,13 @@ export function PropertyModal({
                         </SelectTrigger>
                         <SelectContent>
                           {Object.keys(provinciasEcuador).map((prov) => (
-                            <SelectItem key={prov} value={prov}>
-                              {prov}
-                            </SelectItem>
+                            <SelectItem key={prov} value={prov}>{prov}</SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                     )}
                   />
-                  {errors.provincia && (
-                    <span className="text-xs text-red-500">{errors.provincia.message}</span>
-                  )}
+                  {errors.provincia && <span className="text-xs text-red-500">{errors.provincia.message}</span>}
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <Label className="font-semibold text-foreground">Ciudad</Label>
@@ -491,25 +216,19 @@ export function PropertyModal({
                         </SelectTrigger>
                         <SelectContent>
                           {ciudadesDisponibles.map((ciudad) => (
-                            <SelectItem key={ciudad} value={ciudad}>
-                              {ciudad}
-                            </SelectItem>
+                            <SelectItem key={ciudad} value={ciudad}>{ciudad}</SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                     )}
                   />
-                  {errors.ciudad && (
-                    <span className="text-xs text-red-500">{errors.ciudad.message}</span>
-                  )}
+                  {errors.ciudad && <span className="text-xs text-red-500">{errors.ciudad.message}</span>}
                 </div>
               </div>
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="flex flex-col gap-1.5">
-                  <Label className="font-semibold text-foreground">
-                    Tipo de propiedad
-                  </Label>
+                  <Label className="font-semibold text-foreground">Tipo de propiedad</Label>
                   <Controller
                     name="tipo"
                     control={control}
@@ -520,9 +239,7 @@ export function PropertyModal({
                         </SelectTrigger>
                         <SelectContent>
                           {tiposPropiedad.map((t) => (
-                            <SelectItem key={t.value} value={t.value}>
-                              {t.label}
-                            </SelectItem>
+                            <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
@@ -536,9 +253,7 @@ export function PropertyModal({
                     control={control}
                     render={({ field }) => (
                       <Select value={field.value} onValueChange={field.onChange}>
-                        <SelectTrigger className="bg-card">
-                          <SelectValue />
-                        </SelectTrigger>
+                        <SelectTrigger className="bg-card"><SelectValue /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="disponible">Disponible</SelectItem>
                           <SelectItem value="vendida">Vendida</SelectItem>
@@ -554,57 +269,27 @@ export function PropertyModal({
 
           {/* Detalles Técnicos */}
           <div>
-            <h3 className="text-lg font-bold text-foreground mb-4">
-              Detalles Técnicos
-            </h3>
+            <h3 className="text-lg font-bold text-foreground mb-4">Detalles Técnicos</h3>
             <div className="flex flex-col gap-4">
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                 <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="areaTotales" className="font-semibold text-foreground">
-                    m² totales
-                  </Label>
-                  <Input
-                    id="areaTotales"
-                    type="number"
-                    {...register("areaTotales", { valueAsNumber: true })}
-                    className="bg-card"
-                  />
+                  <Label htmlFor="areaTotales" className="font-semibold text-foreground">m² totales</Label>
+                  <Input id="areaTotales" type="number" {...register("areaTotales", { valueAsNumber: true })} className="bg-card" />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="areaConstruccion" className="font-semibold text-foreground">
-                    m² construcción
-                  </Label>
-                  <Input
-                    id="areaConstruccion"
-                    type="number"
-                    {...register("areaConstruccion", { valueAsNumber: true })}
-                    className="bg-card"
-                  />
+                  <Label htmlFor="areaConstruccion" className="font-semibold text-foreground">m² construcción</Label>
+                  <Input id="areaConstruccion" type="number" {...register("areaConstruccion", { valueAsNumber: true })} className="bg-card" />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="habitaciones" className="font-semibold text-foreground">
-                    Habitaciones
-                  </Label>
-                  <Input
-                    id="habitaciones"
-                    type="number"
-                    {...register("habitaciones", { valueAsNumber: true })}
-                    className="bg-card"
-                  />
+                  <Label htmlFor="habitaciones" className="font-semibold text-foreground">Habitaciones</Label>
+                  <Input id="habitaciones" type="number" {...register("habitaciones", { valueAsNumber: true })} className="bg-card" />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="banos" className="font-semibold text-foreground">
-                    Baños
-                  </Label>
-                  <Input
-                    id="banos"
-                    type="number"
-                    {...register("banos", { valueAsNumber: true })}
-                    className="bg-card"
-                  />
+                  <Label htmlFor="banos" className="font-semibold text-foreground">Baños</Label>
+                  <Input id="banos" type="number" {...register("banos", { valueAsNumber: true })} className="bg-card" />
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <Label className="font-semibold text-foreground">Antigüedad</Label>
@@ -613,25 +298,14 @@ export function PropertyModal({
                       name="antiguedadEsNuevo"
                       control={control}
                       render={({ field }) => (
-                        <Checkbox
-                          id="antiguedadEsNuevo"
-                          checked={field.value}
-                          onCheckedChange={(v) => field.onChange(v === true)}
-                        />
+                        <Checkbox id="antiguedadEsNuevo" checked={field.value} onCheckedChange={(v) => field.onChange(v === true)} />
                       )}
                     />
-                    <Label htmlFor="antiguedadEsNuevo" className="text-sm font-normal text-foreground cursor-pointer">
-                      Nuevo
-                    </Label>
+                    <Label htmlFor="antiguedadEsNuevo" className="text-sm font-normal text-foreground cursor-pointer">Nuevo</Label>
                   </div>
                   {!antiguedadEsNuevo && (
                     <div className="flex items-center gap-2 mt-2">
-                      <Input
-                        type="number"
-                        {...register("antiguedadAnos", { valueAsNumber: true })}
-                        placeholder="Años"
-                        className="bg-card"
-                      />
+                      <Input type="number" {...register("antiguedadAnos", { valueAsNumber: true })} placeholder="Años" className="bg-card" />
                       <span className="text-sm text-muted-foreground">años</span>
                     </div>
                   )}
@@ -644,23 +318,14 @@ export function PropertyModal({
           <div>
             <h3 className="text-lg font-bold text-foreground mb-4">Descripción</h3>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="descripcion" className="font-semibold text-foreground">
-                Descripción
-              </Label>
-              <Textarea
-                id="descripcion"
-                {...register("descripcion")}
-                rows={5}
-                className="bg-card resize-y"
-              />
+              <Label htmlFor="descripcion" className="font-semibold text-foreground">Descripción</Label>
+              <Textarea id="descripcion" {...register("descripcion")} rows={5} className="bg-card resize-y" />
             </div>
           </div>
 
           {/* Características */}
           <div>
-            <h3 className="text-lg font-bold text-foreground mb-4">
-              Características
-            </h3>
+            <h3 className="text-lg font-bold text-foreground mb-4">Características</h3>
             <div className="grid grid-cols-2 gap-3">
               {[
                 { id: "garaje", label: "Garaje" },
@@ -674,16 +339,10 @@ export function PropertyModal({
                     name={id as any}
                     control={control}
                     render={({ field }) => (
-                      <Checkbox
-                        id={id}
-                        checked={field.value}
-                        onCheckedChange={(v) => field.onChange(v === true)}
-                      />
+                      <Checkbox id={id} checked={field.value} onCheckedChange={(v) => field.onChange(v === true)} />
                     )}
                   />
-                  <Label htmlFor={id} className="text-sm font-normal text-foreground cursor-pointer">
-                    {label}
-                  </Label>
+                  <Label htmlFor={id} className="text-sm font-normal text-foreground cursor-pointer">{label}</Label>
                 </div>
               ))}
             </div>
@@ -691,22 +350,10 @@ export function PropertyModal({
 
           {/* Detalles de Construcción */}
           <div>
-            <h3 className="text-lg font-bold text-foreground mb-4">
-              Detalles de Construcción
-            </h3>
-            <div className="flex flex-col gap-4">
-              <div className="flex items-center gap-2">
-                <Label htmlFor="numeroPisos" className="font-semibold text-foreground">
-                  Número de pisos
-                </Label>
-                <Input
-                  id="numeroPisos"
-                  type="number"
-                  {...register("numeroPisos", { valueAsNumber: true })}
-                  placeholder="0, 1, 2, 3..."
-                  className="bg-card w-24"
-                />
-              </div>
+            <h3 className="text-lg font-bold text-foreground mb-4">Detalles de Construcción</h3>
+            <div className="flex items-center gap-2">
+              <Label htmlFor="numeroPisos" className="font-semibold text-foreground">Número de pisos</Label>
+              <Input id="numeroPisos" type="number" {...register("numeroPisos", { valueAsNumber: true })} placeholder="0, 1, 2, 3..." className="bg-card w-24" />
             </div>
           </div>
 
@@ -716,42 +363,29 @@ export function PropertyModal({
             <p className="text-xs text-muted-foreground mb-4">
               Copia el código embed de Google Maps o la URL completa del lugar
             </p>
-
-            {/* Mapa Preview */}
             <MapPreview mapsUrl={mapsUrl} onUrlChange={(url) => setValue("mapsUrl", url)} />
           </div>
 
           {/* Imágenes */}
           <div>
             <h3 className="text-lg font-bold text-foreground mb-4">Imágenes</h3>
-            
-            {(imagenes.length > 0 || pendingFiles.length > 0) && (
+
+            {(imagenes.length > 0 || media.pendingFiles.length > 0) && (
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
                 {imagenes.map((imagen, idx) => (
                   <div key={`exist-${idx}-${imagen.slice(-20)}`} className="relative group">
-                    <img
-                      src={imagen}
-                      alt={`Preview ${idx + 1}`}
-                      className="w-full h-24 object-cover rounded-md bg-muted"
-                    />
+                    <img src={imagen} alt={`Preview ${idx + 1}`} className="w-full h-24 object-cover rounded-md bg-muted" />
                     <button
                       type="button"
                       onClick={async (e) => {
                         e.preventDefault()
-                        e.stopPropagation()
                         if (!confirm("¿Deseas eliminar esta imagen?")) return
                         try {
-                          console.log("Eliminando imagen del storage:", imagen)
                           await deleteImageFromSupabase(imagen)
-                          console.log("Imagen eliminada del storage correctamente")
-                          setValue(
-                            "imagenes",
-                            imagenes.filter((_, i) => i !== idx)
-                          )
-                          console.log("Imagen eliminada del estado del formulario")
+                          setValue("imagenes", imagenes.filter((_, i) => i !== idx))
                         } catch (error) {
                           console.error("Error deleting image:", error)
-                          alert("Error al eliminar la imagen del storage. Por favor intenta de nuevo.")
+                          alert("Error al eliminar la imagen. Por favor intenta de nuevo.")
                         }
                       }}
                       className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
@@ -760,21 +394,15 @@ export function PropertyModal({
                     </button>
                   </div>
                 ))}
-                {pendingFiles.map((p) => (
+                {media.pendingFiles.map((p) => (
                   <div key={p.id} className="relative group">
-                    <img
-                      src={p.url}
-                      alt={`Nueva imagen`}
-                      className="w-full h-24 object-cover rounded-md bg-muted"
-                    />
+                    <img src={p.url} alt="Nueva imagen" className="w-full h-24 object-cover rounded-md bg-muted" />
                     <button
                       type="button"
                       onClick={(e) => {
                         e.preventDefault()
-                        e.stopPropagation()
                         if (!confirm("¿Deseas eliminar esta imagen?")) return
-                        URL.revokeObjectURL(p.url)
-                        setPendingFiles((prev) => prev.filter((x) => x.id !== p.id))
+                        media.removeImage(p.id)
                       }}
                       className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
                     >
@@ -785,37 +413,26 @@ export function PropertyModal({
               </div>
             )}
 
-            {/* Área de drag-drop: label hace click → abre explorador; div recibe drop */}
             <label
               htmlFor="image-upload"
               className="flex flex-col items-center justify-center w-full cursor-pointer rounded-md border-2 border-dashed border-border bg-muted/50 py-10 gap-2 hover:bg-muted/70 transition-colors"
-              onDrop={handleDragDrop}
-              onDragOver={handleDragOver}
+              onDrop={(e) => { e.preventDefault(); if (e.dataTransfer.files?.length) media.addImages(e.dataTransfer.files) }}
+              onDragOver={(e) => e.preventDefault()}
             >
               <input
                 ref={fileInputRef}
                 id="image-upload"
                 type="file"
                 multiple
-                accept="image/png,image/jpeg,image/jpg"
-                onChange={(e) => {
-                  const files = e.target.files
-                  if (files?.length) {
-                    handleImageUpload(files)
-                    e.target.value = ""
-                  }
-                }}
+                accept="image/png,image/jpeg,image/jpg,image/webp,image/avif"
+                onChange={(e) => { if (e.target.files?.length) { media.addImages(e.target.files); e.target.value = "" } }}
                 className="sr-only"
                 tabIndex={-1}
               />
               <div className="flex flex-col items-center justify-center gap-2 pointer-events-none">
                 <Upload className="size-8 text-muted-foreground" />
-                <span className="text-sm text-accent-foreground font-medium">
-                  Arrastra imágenes aquí o haz click para seleccionar
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  PNG, JPG hasta 10MB
-                </span>
+                <span className="text-sm text-accent-foreground font-medium">Arrastra imágenes aquí o haz click para seleccionar</span>
+                <span className="text-xs text-muted-foreground">PNG, JPG hasta 10MB</span>
               </div>
             </label>
           </div>
@@ -823,32 +440,18 @@ export function PropertyModal({
           {/* Videos */}
           <div>
             <h3 className="text-lg font-bold text-foreground mb-4">Videos</h3>
-            {(existingVideos.length > 0 || pendingVideos.length > 0) && (
+
+            {(media.existingVideos.length > 0 || media.pendingVideos.length > 0) && (
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
-                {existingVideos.map((video: string, idx: number) => (
+                {media.existingVideos.map((video, idx) => (
                   <div key={`exist-video-${idx}-${video.slice(-20)}`} className="relative group">
-                    <video
-                      src={video}
-                      className="w-full h-24 object-cover rounded-md bg-muted"
-                      muted
-                      playsInline
-                    />
+                    <video src={video} className="w-full h-24 object-cover rounded-md bg-muted" muted playsInline />
                     <button
                       type="button"
-                      onClick={async (e) => {
+                      onClick={(e) => {
                         e.preventDefault()
-                        e.stopPropagation()
                         if (!confirm("¿Deseas eliminar este video?")) return
-                        try {
-                          // Agregar a la lista de videos a eliminar
-                          setVideosToDelete((prev) => [...prev, video])
-                          // Eliminar visualmente del preview
-                          setExistingVideos((prev) => prev.filter((_, i) => i !== idx))
-                          console.log("Video marcado para eliminación. Se eliminará permanentemente al guardar los cambios.")
-                        } catch (error) {
-                          console.error("Error al marcar video para eliminación:", error)
-                          alert("Error al procesar la eliminación del video. Por favor intenta de nuevo.")
-                        }
+                        media.markVideoForDeletion(video, idx)
                       }}
                       className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
                     >
@@ -856,22 +459,15 @@ export function PropertyModal({
                     </button>
                   </div>
                 ))}
-                {pendingVideos.map((p) => (
+                {media.pendingVideos.map((p) => (
                   <div key={p.id} className="relative group">
-                    <video
-                      src={p.url}
-                      className="w-full h-24 object-cover rounded-md bg-muted"
-                      muted
-                      playsInline
-                    />
+                    <video src={p.url} className="w-full h-24 object-cover rounded-md bg-muted" muted playsInline />
                     <button
                       type="button"
                       onClick={(e) => {
                         e.preventDefault()
-                        e.stopPropagation()
                         if (!confirm("¿Deseas eliminar este video?")) return
-                        URL.revokeObjectURL(p.url)
-                        setPendingVideos((prev) => prev.filter((x) => x.id !== p.id))
+                        media.removeVideo(p.id)
                       }}
                       className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
                     >
@@ -882,7 +478,6 @@ export function PropertyModal({
               </div>
             )}
 
-            {/* Área de drag-drop para videos */}
             <label
               htmlFor="video-upload"
               className="flex flex-col items-center justify-center w-full cursor-pointer rounded-md border-2 border-dashed border-border bg-muted/50 py-10 gap-2 hover:bg-muted/70 transition-colors"
@@ -893,29 +488,19 @@ export function PropertyModal({
                 type="file"
                 multiple
                 accept="video/mp4,video/webm,video/ogg,video/quicktime"
-                onChange={(e) => {
-                  const files = e.target.files
-                  if (files?.length) {
-                    handleVideoUpload(files)
-                    e.target.value = ""
-                  }
-                }}
+                onChange={(e) => { if (e.target.files?.length) { media.addVideos(e.target.files); e.target.value = "" } }}
                 className="sr-only"
                 tabIndex={-1}
               />
               <div className="flex flex-col items-center justify-center gap-2 pointer-events-none">
                 <Upload className="size-8 text-muted-foreground" />
-                <span className="text-sm text-accent-foreground font-medium">
-                  Arrastra videos aquí o haz click para seleccionar
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  MP4, WebM, OGG hasta 50MB
-                </span>
+                <span className="text-sm text-accent-foreground font-medium">Arrastra videos aquí o haz click para seleccionar</span>
+                <span className="text-xs text-muted-foreground">MP4, WebM, OGG hasta 50MB</span>
               </div>
             </label>
           </div>
 
-          {/* Footer buttons */}
+          {/* Footer */}
           <div className="flex gap-3 pt-2">
             <Button
               type="button"
@@ -928,11 +513,12 @@ export function PropertyModal({
             <Button
               type="submit"
               disabled={isSaving}
-              className="flex-1 bg-foreground text-card hover:bg-foreground/90 cursor-pointer"
+              className="flex-1 bg-foreground text-card hover:bg-foreground/90 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {property ? "Guardar cambios" : "Guardar propiedad"}
+              {isSaving ? "Guardando..." : property ? "Guardar cambios" : "Guardar propiedad"}
             </Button>
           </div>
+
         </form>
       </DialogContent>
     </Dialog>

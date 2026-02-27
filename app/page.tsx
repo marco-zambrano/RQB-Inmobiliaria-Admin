@@ -20,11 +20,6 @@ import { usePropertyActions } from "@/hooks/use-property-actions"
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState("propiedades")
 
-  // // Modals hooks
-  // const [modalOpen, setModalOpen] = useState(false)
-  // const [editingProperty, setEditingProperty] = useState<Property | null>(null)
-  // const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  // const [deletingProperty, setDeletingProperty] = useState<Property | null>(null)
 
   const isMobile = useIsMobile()
   const { properties, setProperties, loading, error } = useProperties()
@@ -37,7 +32,15 @@ export default function AdminPage() {
     selectedTipo, setSelectedTipo, 
     handleClearFilters } = usePropertyFilters(properties)
 
-    const { handleAdd, handleEdit, handleDelete, handleConfirmDelete, handleSave, modalOpen, setModalOpen, editingProperty, deleteDialogOpen, setDeleteDialogOpen, deletingProperty } = usePropertyActions(setProperties)
+    const { handleAdd,
+      handleEdit,
+      handleDelete,
+      handleConfirmDelete,
+      handleSave,
+      modalOpen, setModalOpen,
+      editingProperty,
+      deleteDialogOpen, setDeleteDialogOpen,
+      deletingProperty } = usePropertyActions(setProperties)
 
   return (
     <AuthGuard>
