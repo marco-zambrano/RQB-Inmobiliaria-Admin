@@ -1,14 +1,12 @@
 // =========================
 // ENUMS
 // =========================
-
 export type PropertyType = 'local' | 'apartamento' | 'casa' | 'terreno' | 'casa rentera'
 export type PropertyStatus = 'disponible' | 'vendida' | 'negociación'
 
 // =========================
 // INTERFACES PRINCIPALES
 // =========================
-
 export interface Property {
   id: string
   title: string
@@ -65,29 +63,29 @@ export interface PropertyVideo {
 // DTOs (para crear/actualizar)
 // =========================
 
-export interface CreatePropertyDTO {
-  title: string
-  price: number
-  address: string
-  city: string
-  province: string
-  property_type: PropertyType
-  status?: PropertyStatus
-  sqm_total?: number
-  sqm_built?: number
-  bedrooms?: number
-  bathrooms?: number
-  antiquity_years?: number
-  description: string
-  features?: string[]
-  map_url?: string
-  venta_type?: string
-  property_owner?: string
-}
+// export interface CreatePropertyDTO {
+//   title: string
+//   price: number
+//   address: string
+//   city: string
+//   province: string
+//   property_type: PropertyType
+//   status?: PropertyStatus
+//   sqm_total?: number
+//   sqm_built?: number
+//   bedrooms?: number
+//   bathrooms?: number
+//   antiquity_years?: number
+//   description: string
+//   features?: string[]
+//   map_url?: string
+//   venta_type?: string
+//   property_owner?: string
+// }
 
-export interface UpdatePropertyDTO extends Partial<CreatePropertyDTO> {
-  sold_at?: string
-  interest_level?: number
-  venta_type?: string
-  property_owner?: string
-}
+// export interface UpdatePropertyDTO extends Partial<CreatePropertyDTO> {
+//   sold_at?: string
+//   interest_level?: number
+//   venta_type?: string
+//   property_owner?: string
+// }

@@ -767,7 +767,7 @@ export function PropertyModal({
                           alert("Error al eliminar la imagen del storage. Por favor intenta de nuevo.")
                         }
                       }}
-                      className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
                     >
                       <X className="w-4 h-4" />
                     </button>
@@ -789,7 +789,7 @@ export function PropertyModal({
                         URL.revokeObjectURL(p.url)
                         setPendingFiles((prev) => prev.filter((x) => x.id !== p.id))
                       }}
-                      className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
                     >
                       <X className="w-4 h-4" />
                     </button>
@@ -863,7 +863,7 @@ export function PropertyModal({
                           alert("Error al procesar la eliminación del video. Por favor intenta de nuevo.")
                         }
                       }}
-                      className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
                     >
                       <X className="w-4 h-4" />
                     </button>
@@ -886,7 +886,7 @@ export function PropertyModal({
                         URL.revokeObjectURL(p.url)
                         setPendingVideos((prev) => prev.filter((x) => x.id !== p.id))
                       }}
-                      className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
                     >
                       <X className="w-4 h-4" />
                     </button>
@@ -933,14 +933,14 @@ export function PropertyModal({
             <Button
               type="button"
               variant="outline"
-              className="flex-1 bg-card text-foreground"
+              className="flex-1 bg-card text-foreground cursor-pointer"
               onClick={() => onOpenChange(false)}
             >
               Cancelar
             </Button>
             <Button
               type="submit"
-              className="flex-1 bg-foreground text-card hover:bg-foreground/90"
+              className="flex-1 bg-foreground text-card hover:bg-foreground/90 cursor-pointer"
             >
               {property ? "Guardar cambios" : "Guardar propiedad"}
             </Button>

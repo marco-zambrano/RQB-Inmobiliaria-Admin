@@ -282,7 +282,7 @@ export default function AdminPage() {
               <h1 className="text-2xl font-semibold tracking-tight text-foreground">
                 Gestion de Propiedades
               </h1>
-              <Button onClick={handleAdd} className="gap-2">
+              <Button onClick={handleAdd} className="gap-2 cursor-pointer">
                 <Plus className="size-4" />
                 Agregar nueva propiedad
               </Button>

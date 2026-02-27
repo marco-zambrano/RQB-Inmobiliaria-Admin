@@ -11,8 +11,8 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-// Nombre del bucket en Supabase Storage (solo minúsculas, números y guiones; sin espacios)
-export const STORAGE_BUCKET = "Pages File";
+// Nombre del bucket en Supabase Storage (solo minúsculas, números y guiones)
+export const STORAGE_BUCKET = "rqb-bucket";
 
 export async function uploadImageToSupabase(file: File): Promise<string> {
   if (!file) throw new Error("No file selected");
@@ -32,6 +32,12 @@ export async function uploadImageToSupabase(file: File): Promise<string> {
       });
 
     if (error) {
+      console.error("Error detallado de Supabase:", {
+        message: error.message,
+        details: error,
+        bucket: STORAGE_BUCKET,
+        fileName
+      });
       throw new Error(`Error uploading file: ${error.message}`);
     }
 
@@ -42,6 +48,12 @@ export async function uploadImageToSupabase(file: File): Promise<string> {
       .createSignedUrl(data.path, EXPIRES_IN);
 
     if (signedError || !signedData?.signedUrl) {
+      console.error("Error creando URL firmada:", {
+        signedError,
+        signedData,
+        path: data.path,
+        bucket: STORAGE_BUCKET
+      });
       throw new Error(`Error creating signed URL: ${signedError?.message ?? "Unknown"}`);
     }
 
@@ -70,6 +82,12 @@ export async function uploadVideoToSupabase(file: File): Promise<string> {
       });
 
     if (error) {
+      console.error("Error detallado de Supabase (video):", {
+        message: error.message,
+        details: error,
+        bucket: STORAGE_BUCKET,
+        fileName
+      });
       throw new Error(`Error uploading video: ${error.message}`);
     }
 
@@ -80,6 +98,12 @@ export async function uploadVideoToSupabase(file: File): Promise<string> {
       .createSignedUrl(data.path, EXPIRES_IN);
 
     if (signedError || !signedData?.signedUrl) {
+      console.error("Error creando URL firmada (video):", {
+        signedError,
+        signedData,
+        path: data.path,
+        bucket: STORAGE_BUCKET
+      });
       throw new Error(`Error creating signed URL for video: ${signedError?.message ?? "Unknown"}`);
     }
 
