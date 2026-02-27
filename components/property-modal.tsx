@@ -144,6 +144,8 @@ export function PropertyModal({
         }
       }
       
+      console.log("Videos", property)
+
       // Cargar videos existentes
       setExistingVideos((property.videos ?? []).map((v) => v.video_url))
       
@@ -810,7 +812,6 @@ export function PropertyModal({
           {/* Videos */}
           <div>
             <h3 className="text-lg font-bold text-foreground mb-4">Videos</h3>
-            
             {(existingVideos.length > 0 || pendingVideos.length > 0) && (
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
                 {existingVideos.map((video: string, idx: number) => (

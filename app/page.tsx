@@ -37,7 +37,7 @@ export default function AdminPage() {
       try {
         const { data, error } = await supabase
           .from("properties")
-          .select(`*, property_images(id, property_id, image_url, created_at)`)
+          .select(`*, property_images(id, property_id, image_url, created_at), property_videos(id, property_id, video_url, created_at)`)
           .order("created_at", { ascending: false })
 
         if (error) throw error
@@ -49,6 +49,12 @@ export default function AdminPage() {
             property_id: p.id,
             image_url: i.image_url,
             created_at: i.created_at ?? "",
+          })),
+          videos: (p.property_videos || []).map((v: any) => ({
+            id: v.id ?? "",
+            property_id: p.id,
+            video_url: v.video_url,
+            created_at: v.created_at ?? "",
           })),
         }))
 
