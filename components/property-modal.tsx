@@ -26,7 +26,7 @@ import { provinciasEcuador, tiposPropiedad } from "@/lib/data"
 import type { Property, PropertyStatus, PropertyType } from "@/lib/types"
 import { Upload, X } from "lucide-react"
 import { MapPreview } from "./map-preview"
-import { uploadImageToSupabase, deleteImageFromSupabase, uploadVideoToSupabase, deleteVideoFromSupabase, saveVideoToDatabase } from "@/lib/supabaseClient"
+import { uploadImageToSupabase, deleteImageFromSupabase, uploadVideoToSupabase, deleteVideoFromSupabase, saveVideoToDatabase, deleteVideoFromDatabase } from "@/lib/supabaseClient"
 
 const propertySchema = z.object({
   title: z.string().min(3, "El nombre debe tener al menos 3 caracteres"),
@@ -117,6 +117,7 @@ export function PropertyModal({
   const [pendingFiles, setPendingFiles] = useState<{ id: string; url: string; file: File }[]>([])
   const [pendingVideos, setPendingVideos] = useState<{ id: string; url: string; file: File }[]>([])
   const [existingVideos, setExistingVideos] = useState<string[]>([])
+  const [videosToDelete, setVideosToDelete] = useState<string[]>([])
 
   const ciudadesDisponibles = provincia
     ? (provinciasEcuador[provincia as keyof typeof provinciasEcuador] || [])
@@ -131,6 +132,7 @@ export function PropertyModal({
       prev.forEach((p) => URL.revokeObjectURL(p.url))
       return []
     })
+    setVideosToDelete([])
     if (property) {
       const featuresSet = new Set(property.features ?? [])
       
@@ -300,6 +302,27 @@ export function PropertyModal({
       })),
     }
     
+    // Eliminar videos marcados para eliminación
+    if (videosToDelete.length > 0 && property?.videos) {
+      for (const videoUrl of videosToDelete) {
+        try {
+          console.log("Eliminando video del storage:", videoUrl)
+          await deleteVideoFromSupabase(videoUrl)
+          console.log("Video eliminado del storage correctamente")
+          
+          // Eliminar de la base de datos
+          const videoToDelete = property.videos.find(v => v.video_url === videoUrl)
+          if (videoToDelete?.id) {
+            await deleteVideoFromDatabase(videoToDelete.id)
+            console.log("Video eliminado de la base de datos correctamente")
+          }
+        } catch (error) {
+          console.error("Error eliminando video:", videoUrl, error)
+          // Continuar con otros videos incluso si uno falla
+        }
+      }
+    }
+    
     // Guardar videos nuevos en la base de datos
     if (videosNuevos.length > 0) {
       // Pasar los videos nuevos al onSave para que los gestione externamente
@@ -310,6 +333,7 @@ export function PropertyModal({
     
     setPendingFiles([])
     setPendingVideos([])
+    setVideosToDelete([])
     onOpenChange(false)
   }
 
@@ -829,14 +853,14 @@ export function PropertyModal({
                         e.stopPropagation()
                         if (!confirm("¿Deseas eliminar este video?")) return
                         try {
-                          console.log("Eliminando video del storage:", video)
-                          await deleteVideoFromSupabase(video)
-                          console.log("Video eliminado del storage correctamente")
+                          // Agregar a la lista de videos a eliminar
+                          setVideosToDelete((prev) => [...prev, video])
+                          // Eliminar visualmente del preview
                           setExistingVideos((prev) => prev.filter((_, i) => i !== idx))
-                          console.log("Video eliminado del estado del formulario")
+                          console.log("Video marcado para eliminación. Se eliminará permanentemente al guardar los cambios.")
                         } catch (error) {
-                          console.error("Error deleting video:", error)
-                          alert("Error al eliminar el video del storage. Por favor intenta de nuevo.")
+                          console.error("Error al marcar video para eliminación:", error)
+                          alert("Error al procesar la eliminación del video. Por favor intenta de nuevo.")
                         }
                       }}
                       className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity"
