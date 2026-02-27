@@ -209,13 +209,19 @@ export function PropertyModal({
     // Normalizar la URL de Google Maps a una URL válida para iframe (vía API para evitar CORS)
     let mapUrlValue = ""
     if (formData.mapsUrl && formData.mapsUrl.trim() !== "") {
-      const res = await fetch("/api/maps-embed", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: formData.mapsUrl.trim() }),
-      })
-      const data = await res.json().catch(() => ({ embedUrl: null }))
-      mapUrlValue = data.embedUrl ?? ""
+      // Si ya es una URL de embed válida, usarla directamente
+      if (formData.mapsUrl.includes("google.com") && formData.mapsUrl.includes("/maps/embed")) {
+        mapUrlValue = formData.mapsUrl.trim()
+      } else {
+        // Si no, procesarla a través del API
+        const res = await fetch("/api/maps-embed", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url: formData.mapsUrl.trim() }),
+        })
+        const data = await res.json().catch(() => ({ embedUrl: null }))
+        mapUrlValue = data.embedUrl ?? ""
+      }
     }
 
     onSave({

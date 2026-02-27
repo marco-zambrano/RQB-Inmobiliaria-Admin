@@ -7,7 +7,7 @@ interface MapPreviewProps {
   onUrlChange: (url: string) => void;
 }
 
-// Acepta tanto el enlace de compartir (maps.app.goo.gl, google.com/maps) como el embed
+// Acepta tanto el enlace de compartir (maps.app.goo.gl, google.com/maps) como el embed o etiquetas iframe
 function isAcceptableMapsInput(url: string): boolean {
   if (!url?.trim()) return false;
   const u = url.trim().toLowerCase();
@@ -15,8 +15,22 @@ function isAcceptableMapsInput(url: string): boolean {
     u.includes("google.com/maps") ||
     u.includes("gstatic.com") ||
     u.includes("maps.app.goo.gl") ||
-    u.includes("goo.gl/maps")
+    u.includes("goo.gl/maps") ||
+    u.includes("<iframe")
   );
+}
+
+// Extrae la URL de embed de una etiqueta iframe completa
+function extractEmbedUrlFromIframe(iframeHtml: string): string | null {
+  const srcMatch = iframeHtml.match(/src=["']([^"']+)["']/);
+  if (srcMatch && srcMatch[1]) {
+    const url = srcMatch[1];
+    // Verificar que sea una URL de embed de Google Maps
+    if (url.includes("google.com/maps/embed")) {
+      return url;
+    }
+  }
+  return null;
 }
 
 // Indica si la URL ya es una URL de iframe (embed)
@@ -37,6 +51,18 @@ export function MapPreview({ mapsUrl = "", onUrlChange }: MapPreviewProps) {
       setEmbedUrl(null);
       return;
     }
+    
+    // Verificar si es una etiqueta iframe completa
+    if (trimmed.includes("<iframe")) {
+      const extractedUrl = extractEmbedUrlFromIframe(trimmed);
+      if (extractedUrl) {
+        setEmbedUrl(extractedUrl);
+        // Actualizar el valor del input con la URL extraída para que se guarde en la BD
+        onUrlChange(extractedUrl);
+        return;
+      }
+    }
+    
     if (isEmbedUrl(trimmed)) {
       setEmbedUrl(trimmed);
       return;
@@ -67,7 +93,7 @@ export function MapPreview({ mapsUrl = "", onUrlChange }: MapPreviewProps) {
         type="text"
         value={mapsUrl}
         onChange={(e) => onUrlChange(e.target.value)}
-        placeholder="Ej: https://maps.app.goo.gl/... o enlace de compartir de Google Maps"
+        placeholder="Ej: https://maps.app.goo.gl/..., URL de compartir de Google Maps o etiqueta iframe completa"
         className="w-full px-3 py-2 rounded-md border border-border bg-card text-foreground text-sm"
       />
 
@@ -93,13 +119,13 @@ export function MapPreview({ mapsUrl = "", onUrlChange }: MapPreviewProps) {
 
       {!mapsUrl && !resolving && (
         <div className="flex items-center justify-center rounded-md bg-muted/50 py-8 text-xs text-muted-foreground">
-          Ingresa la URL de compartir de Google Maps (Compartir → Copiar enlace)
+          Ingresa la URL de compartir de Google Maps, URL de embed o etiqueta iframe completa (Compartir → Copiar enlace o Compartir → Incrustar mapa)
         </div>
       )}
 
       {!resolving && showInvalid && (
         <div className="flex items-center justify-center rounded-md bg-destructive/10 py-8 text-xs text-destructive">
-          URL inválida. Usa el enlace de compartir de Google Maps (p. ej. maps.app.goo.gl/…)
+          URL inválida. Usa el enlace de compartir de Google Maps, URL de embed o etiqueta iframe completa (p. ej. maps.app.goo.gl/… o <iframe src="..."></iframe>)
         </div>
       )}
     </div>
