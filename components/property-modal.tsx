@@ -453,6 +453,7 @@ export function PropertyModal({
                         <SelectContent>
                           <SelectItem value="disponible">Disponible</SelectItem>
                           <SelectItem value="vendida">Vendida</SelectItem>
+                          <SelectItem value="negociación">Negociación</SelectItem>
                         </SelectContent>
                       </Select>
                     )}

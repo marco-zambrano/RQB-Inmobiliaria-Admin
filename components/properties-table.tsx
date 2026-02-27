@@ -30,7 +30,7 @@ function StatusBadge({ status }: { status: string }) {
       label: "Vendida",
       className: "border-transparent bg-muted-foreground text-white hover:bg-muted-foreground",
     },
-    negociacion: {
+    negociación: {
       label: "Negociación",
       className: "border-transparent bg-yellow-600 text-white hover:bg-yellow-600",
     },
