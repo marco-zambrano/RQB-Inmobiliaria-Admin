@@ -146,9 +146,7 @@ export function PropertyModal({
         balcon: featuresSet.has("balcon"),
         dospisos: featuresSet.has("dospisos"),
         trespisos: featuresSet.has("trespisos"),
-        mapsUrl: property.latitude != null && property.longitude != null
-          ? `https://www.google.com/maps?q=${property.latitude},${property.longitude}`
-          : "",
+        mapsUrl: property.map_url || "",
         imagenes: (property.images ?? []).map((i) => i.image_url),
       })
     } else {
@@ -208,8 +206,22 @@ export function PropertyModal({
     }
     const urlsSupabase = [...urlsExistentes, ...urlsNuevas]
 
+    // Normalizar la URL de Google Maps a una URL válida para iframe (vía API para evitar CORS)
+    let mapUrlValue = ""
+    if (formData.mapsUrl && formData.mapsUrl.trim() !== "") {
+      const res = await fetch("/api/maps-embed", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: formData.mapsUrl.trim() }),
+      })
+      const data = await res.json().catch(() => ({ embedUrl: null }))
+      mapUrlValue = data.embedUrl ?? ""
+    }
+
     onSave({
       title: formData.nombre,
+      latitude: property?.latitude ?? null,
+      longitude: property?.longitude ?? null,
       description: formData.descripcion || null,
       price: formData.precio || 0,
       property_type: formData.tipo as PropertyType,
@@ -223,8 +235,7 @@ export function PropertyModal({
       address: formData.direccion || "",
       features,
       status: formData.estado as PropertyStatus,
-      latitude: null,
-      longitude: null,
+      map_url: mapUrlValue,
       interest_level: property?.interest_level ?? 0,
       sold_at: property?.sold_at ?? null,
       created_at: property?.created_at ?? new Date().toISOString(),

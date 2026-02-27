@@ -35,6 +35,7 @@ export interface Property {
 
   latitude: number | null
   longitude: number | null
+  map_url: string
 
   interest_level: number
 
@@ -82,6 +83,7 @@ export interface CreatePropertyDTO {
   features?: string[]
   latitude?: number
   longitude?: number
+  map_url?: string
 }
 
 export interface UpdatePropertyDTO extends Partial<CreatePropertyDTO> {

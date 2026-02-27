@@ -1,16 +1,65 @@
 "use client";
 
+import { useEffect, useState } from "react";
+
 interface MapPreviewProps {
   mapsUrl?: string;
   onUrlChange: (url: string) => void;
 }
 
-export function MapPreview({ mapsUrl = "", onUrlChange }: MapPreviewProps) {
-  // Validar si la URL es válida para embed
-  const isValidMapsUrl = mapsUrl && (
-    mapsUrl.includes("google.com/maps") || 
-    mapsUrl.includes("gstatic.com")
+// Acepta tanto el enlace de compartir (maps.app.goo.gl, google.com/maps) como el embed
+function isAcceptableMapsInput(url: string): boolean {
+  if (!url?.trim()) return false;
+  const u = url.trim().toLowerCase();
+  return (
+    u.includes("google.com/maps") ||
+    u.includes("gstatic.com") ||
+    u.includes("maps.app.goo.gl") ||
+    u.includes("goo.gl/maps")
   );
+}
+
+// Indica si la URL ya es una URL de iframe (embed)
+function isEmbedUrl(url: string): boolean {
+  return url.includes("google.com") && url.includes("/maps/embed");
+}
+
+export function MapPreview({ mapsUrl = "", onUrlChange }: MapPreviewProps) {
+  const [embedUrl, setEmbedUrl] = useState<string | null>(null);
+  const [resolving, setResolving] = useState(false);
+
+  const trimmed = mapsUrl?.trim() ?? "";
+  const acceptable = isAcceptableMapsInput(trimmed);
+  const showInvalid = trimmed.length > 0 && !acceptable;
+
+  useEffect(() => {
+    if (!trimmed) {
+      setEmbedUrl(null);
+      return;
+    }
+    if (isEmbedUrl(trimmed)) {
+      setEmbedUrl(trimmed);
+      return;
+    }
+    if (!acceptable) {
+      setEmbedUrl(null);
+      return;
+    }
+    setResolving(true);
+    fetch("/api/maps-embed", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url: trimmed }),
+    })
+      .then((r) => r.json())
+      .then((data: { embedUrl: string | null }) => {
+        setEmbedUrl(data.embedUrl ?? null);
+      })
+      .catch(() => setEmbedUrl(null))
+      .finally(() => {
+        setResolving(false);
+      });
+  }, [trimmed, acceptable]);
 
   return (
     <div className="flex flex-col gap-3">
@@ -18,11 +67,17 @@ export function MapPreview({ mapsUrl = "", onUrlChange }: MapPreviewProps) {
         type="text"
         value={mapsUrl}
         onChange={(e) => onUrlChange(e.target.value)}
-        placeholder="Ej: https://www.google.com/maps/embed?pb=... o enlace de Google Maps"
+        placeholder="Ej: https://maps.app.goo.gl/... o enlace de compartir de Google Maps"
         className="w-full px-3 py-2 rounded-md border border-border bg-card text-foreground text-sm"
       />
 
-      {isValidMapsUrl && (
+      {resolving && (
+        <div className="flex items-center justify-center rounded-md bg-muted/50 py-8 text-xs text-muted-foreground">
+          Cargando vista previa del mapa…
+        </div>
+      )}
+
+      {!resolving && embedUrl && (
         <div className="w-full">
           <iframe
             width="100%"
@@ -30,21 +85,21 @@ export function MapPreview({ mapsUrl = "", onUrlChange }: MapPreviewProps) {
             style={{ border: 0, borderRadius: "0.375rem" }}
             loading="lazy"
             referrerPolicy="no-referrer-when-downgrade"
-            src={mapsUrl}
+            src={embedUrl}
             allowFullScreen
-          ></iframe>
+          />
         </div>
       )}
 
-      {!mapsUrl && (
+      {!mapsUrl && !resolving && (
         <div className="flex items-center justify-center rounded-md bg-muted/50 py-8 text-xs text-muted-foreground">
-          Ingresa una URL de Google Maps para ver la vista previa
+          Ingresa la URL de compartir de Google Maps (Compartir → Copiar enlace)
         </div>
       )}
 
-      {mapsUrl && !isValidMapsUrl && (
+      {!resolving && showInvalid && (
         <div className="flex items-center justify-center rounded-md bg-destructive/10 py-8 text-xs text-destructive">
-          URL inválida. Copia el código embed de Google Maps
+          URL inválida. Usa el enlace de compartir de Google Maps (p. ej. maps.app.goo.gl/…)
         </div>
       )}
     </div>
