@@ -177,14 +177,25 @@ export default function AdminPage() {
             await supabase.from("property_images").insert(imagesToInsert)
           }
 
-          // Manejar videos
+          // Manejar videos en actualización
           if (videos && videos.length > 0) {
-            // Eliminar videos existentes
-            await supabase.from("property_videos").delete().eq("property_id", editingProperty.id)
+            // Obtener videos existentes para preservarlos
+            const { data: existingVids } = await supabase.from("property_videos").select("id, property_id, video_url, created_at").eq("property_id", editingProperty.id)
             
-            // Insertar nuevos videos
-            const videosToInsert = videos.map((url) => ({ property_id: editingProperty.id, video_url: url }))
-            await supabase.from("property_videos").insert(videosToInsert)
+            // Eliminar solo los videos que se eliminaron en el modal (no en el array actual)
+            const existingVideoUrls = (existingVids || []).map(v => v.video_url)
+            const videosToDelete = existingVideoUrls.filter(url => !videos.includes(url))
+            
+            if (videosToDelete.length > 0) {
+              await supabase.from("property_videos").delete().in("video_url", videosToDelete)
+            }
+            
+            // Insertar solo los videos nuevos (que no existen)
+            const newVideoUrls = videos.filter(url => !existingVideoUrls.includes(url))
+            if (newVideoUrls.length > 0) {
+              const videosToInsert = newVideoUrls.map((url) => ({ property_id: editingProperty.id, video_url: url }))
+              await supabase.from("property_videos").insert(videosToInsert)
+            }
           }
 
           const { data: imgs } = await supabase.from("property_images").select("id, property_id, image_url, created_at").eq("property_id", editingProperty.id)
