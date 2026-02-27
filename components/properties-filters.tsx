@@ -51,7 +51,7 @@ export function PropertiesFilters({
 
       <div className="flex items-center gap-2">
         <Select value={selectedProvincia} onValueChange={onProvinciaChange}>
-          <SelectTrigger className="w-[160px] bg-card">
+          <SelectTrigger className="w-[160px] bg-card cursor-pointer">
             <SelectValue placeholder="Todas las provincias" />
           </SelectTrigger>
           <SelectContent>
@@ -65,7 +65,7 @@ export function PropertiesFilters({
         </Select>
 
         <Select value={selectedEstado} onValueChange={onEstadoChange}>
-          <SelectTrigger className="w-[170px] bg-card">
+          <SelectTrigger className="w-[170px] bg-card cursor-pointer">
             <SelectValue placeholder="Todos los estados" />
           </SelectTrigger>
           <SelectContent>
@@ -77,7 +77,7 @@ export function PropertiesFilters({
         </Select>
 
         <Select value={selectedTipo} onValueChange={onTipoChange}>
-          <SelectTrigger className="w-[170px] bg-card">
+          <SelectTrigger className="w-[170px] bg-card cursor-pointer">
             <SelectValue placeholder="Todos los tipos" />
           </SelectTrigger>
           <SelectContent>
@@ -94,7 +94,7 @@ export function PropertiesFilters({
           <Button
             variant="ghost"
             onClick={onClearFilters}
-            className="text-muted-foreground hover:text-foreground"
+            className="text-muted-foreground hover:text-foreground cursor-pointer"
           >
             <X className="size-4" />
             Limpiar filtros

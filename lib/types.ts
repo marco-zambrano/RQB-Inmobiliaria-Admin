@@ -29,22 +29,17 @@ export interface Property {
 
   antiquity_years: number | null
 
-  description: string | null
+  description: string
 
   features: string[]
-
-  latitude: number | null
-  longitude: number | null
   map_url: string
 
   interest_level: number
 
   sold_at: string | null
-
   created_at: string
 
   venta_type: string | null
-
   property_owner: string | null
 
   // Relaciones (opcionales, se incluyen cuando se hace JOIN)
@@ -83,10 +78,8 @@ export interface CreatePropertyDTO {
   bedrooms?: number
   bathrooms?: number
   antiquity_years?: number
-  description?: string
+  description: string
   features?: string[]
-  latitude?: number
-  longitude?: number
   map_url?: string
   venta_type?: string
   property_owner?: string

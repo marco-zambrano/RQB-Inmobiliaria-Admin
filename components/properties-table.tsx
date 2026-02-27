@@ -65,9 +65,7 @@ export function PropertiesTable({ properties, onEdit, onDelete }: PropertiesTabl
       </div>
     )
   }
-
-    console.log(properties);
-    
+  
   return (
     <div className="rounded-lg border border-border bg-card">
       <Table>
@@ -89,6 +87,7 @@ export function PropertiesTable({ properties, onEdit, onDelete }: PropertiesTabl
         <TableBody>
           {properties.map((property) => (
             <TableRow key={property.id} className="hover:bg-muted/30">
+              {/* Image */}
               <TableCell>
                 <div className="relative h-12 w-16 overflow-hidden rounded-md">
                   {property.images?.[0]?.image_url ? (
@@ -105,40 +104,50 @@ export function PropertiesTable({ properties, onEdit, onDelete }: PropertiesTabl
                   )}
                 </div>
               </TableCell>
+              {/* Title */}
               <TableCell className="font-medium text-foreground">
                 {property.title}
               </TableCell>
+              {/* Price */}
               <TableCell className="text-foreground">
                 {formatPrice(property.price)}
               </TableCell>
+              {/* Property Type */}
               <TableCell className="text-foreground capitalize">
                 {property.property_type}
               </TableCell>
+              {/* Sale Type */}
               <TableCell className="text-foreground">
                 {property.venta_type || "-"}
               </TableCell>
+              {/* Property Owner */}
               <TableCell className="text-foreground">
                 {property.property_owner || "-"}
               </TableCell>
+              {/* Province */}
               <TableCell className="text-foreground">
                 {property.province}
               </TableCell>
+              {/* Status */}
               <TableCell>
                 <StatusBadge status={property.status} />
               </TableCell>
+              {/* Created At */}
               <TableCell className="text-foreground">
                 {property.created_at ? new Date(property.created_at).toLocaleDateString("es-EC") : "-"}
               </TableCell>
+              {/* Sold At */}
               <TableCell className="text-foreground">
                 {property.sold_at ? new Date(property.sold_at).toLocaleDateString("es-EC") : "-"}
               </TableCell>
+              {/* Actions */}
               <TableCell className="text-right">
                 <div className="flex items-center justify-end gap-1">
                   <Button
                     variant="ghost"
                     size="icon"
                     onClick={() => onEdit(property)}
-                    className="text-muted-foreground hover:text-foreground"
+                    className="text-muted-foreground hover:text-foreground cursor-pointer"
                   >
                     <Pencil className="size-4" />
                     <span className="sr-only">Editar</span>
@@ -147,7 +156,7 @@ export function PropertiesTable({ properties, onEdit, onDelete }: PropertiesTabl
                     variant="ghost"
                     size="icon"
                     onClick={() => onDelete(property)}
-                    className="text-muted-foreground hover:text-destructive"
+                    className="text-muted-foreground hover:text-destructive cursor-pointer"
                   >
                     <Trash2 className="size-4" />
                     <span className="sr-only">Eliminar</span>
@@ -162,6 +171,7 @@ export function PropertiesTable({ properties, onEdit, onDelete }: PropertiesTabl
   )
 }
 
+// --------------- MOBILE FORMAT -------------------
 export function PropertiesCards({ properties, onEdit, onDelete }: PropertiesTableProps) {
   if (properties.length === 0) {
     return (

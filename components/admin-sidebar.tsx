@@ -22,7 +22,7 @@ export function AdminSidebar({ activeTab, onTabChange }: AdminSidebarProps) {
       </div>
 
       <nav className="mt-2 flex flex-1 flex-col gap-1 px-3">
-        <button
+        {/* <button
           onClick={() => onTabChange("dashboard")}
           className={cn(
             "flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors",
@@ -33,11 +33,11 @@ export function AdminSidebar({ activeTab, onTabChange }: AdminSidebarProps) {
         >
           <Home className="size-4" />
           Dashboard
-        </button>
+        </button> */}
         <button
           onClick={() => onTabChange("propiedades")}
           className={cn(
-            "flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors",
+            "flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors cursor-pointer",
             activeTab === "propiedades"
               ? "bg-sidebar-accent text-sidebar-accent-foreground"
               : "text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -54,10 +54,10 @@ export function AdminSidebar({ activeTab, onTabChange }: AdminSidebarProps) {
             await supabase.auth.signOut();
             router.push("/login");
           }}
-          className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground cursor-pointer"
         >
-          <div className="flex size-7 items-center justify-center rounded-full bg-accent text-xs font-semibold text-accent-foreground">
-            N
+          <div className="flex size-7.5 items-center justify-center rounded-full bg-accent text-xs font-semibold text-accent-foreground">
+            R
           </div>
           <span>Cerrar sesion</span>
           <LogOut className="ml-auto size-4" />

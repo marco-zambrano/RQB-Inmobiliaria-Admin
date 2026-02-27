@@ -24,12 +24,12 @@ import {
 } from "@/components/ui/select"
 import { provinciasEcuador, tiposPropiedad } from "@/lib/data"
 import type { Property, PropertyStatus, PropertyType } from "@/lib/types"
-import { Upload, X, Trash2 } from "lucide-react"
+import { Upload, X } from "lucide-react"
 import { MapPreview } from "./map-preview"
 import { uploadImageToSupabase, deleteImageFromSupabase } from "@/lib/supabaseClient"
 
 const propertySchema = z.object({
-  nombre: z.string().min(3, "El nombre debe tener al menos 3 caracteres"),
+  title: z.string().min(3, "El nombre debe tener al menos 3 caracteres"),
   precio: z.number().min(0, "El precio debe ser mayor a 0"),
   direccion: z.string().optional(),
   provincia: z.string().min(1, "Selecciona una provincia"),
@@ -81,7 +81,7 @@ export function PropertyModal({
   } = useForm<PropertyFormData>({
     resolver: zodResolver(propertySchema),
     defaultValues: {
-      nombre: "",
+      title: "",
       precio: undefined,
       direccion: "",
       provincia: "",
@@ -138,12 +138,12 @@ export function PropertyModal({
       }
       
       reset({
-        nombre: property.title,
+        title: property.title,
         precio: property.price,
         direccion: property.address,
         provincia: property.province,
         ciudad: property.city,
-        ventaType: (property.venta_type as any) ?? undefined,
+        ventaType: (property.venta_type as any),
         propertyOwner: property.property_owner ?? undefined,
         tipo: property.property_type,
         estado: property.status,
@@ -165,12 +165,12 @@ export function PropertyModal({
       })
     } else {
       reset({
-        nombre: "",
+        title: "",
         precio: undefined,
         direccion: "",
         provincia: "",
         ciudad: "",
-        tipo: "local",
+        tipo: "apartamento",
         estado: "disponible",
         ventaType: undefined,
         propertyOwner: undefined,
@@ -244,10 +244,8 @@ export function PropertyModal({
     }
 
     onSave({
-      title: formData.nombre,
-      latitude: property?.latitude ?? null,
-      longitude: property?.longitude ?? null,
-      description: formData.descripcion || null,
+      title: formData.title,
+      description: formData.descripcion ?? "",
       price: formData.precio || 0,
       property_type: formData.tipo as PropertyType,
       province: formData.provincia,
@@ -279,7 +277,7 @@ export function PropertyModal({
 
   const handleImageUpload = (files: FileList) => {
     const fileArray = Array.from(files).filter(
-      (f) => f.type === "image/png" || f.type === "image/jpeg" || f.type === "image/jpg"
+      (f) => f.type === "image/png" || f.type === "image/jpeg" || f.type === "image/jpg" || f.type === "image/webp" || f.type === "image/avif"
     )
     if (fileArray.length === 0) return
 
@@ -308,7 +306,7 @@ export function PropertyModal({
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl bg-card">
         <DialogHeader>
           <DialogTitle className="text-xl font-bold text-foreground">
-            {property ? "Editar Propiedad" : "Agregar Nueva Propiedad"}
+            {property ? `Editar Propiedad --> ${property.title}` : "Agregar Nueva Propiedad"}
           </DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-6">
@@ -324,12 +322,12 @@ export function PropertyModal({
                     Título
                   </Label>
                   <Input
-                    id="nombre"
-                    {...register("nombre")}
+                    id="title"
+                    {...register("title")}
                     className="bg-card"
                   />
-                  {errors.nombre && (
-                    <span className="text-xs text-red-500">{errors.nombre.message}</span>
+                  {errors.title && (
+                    <span className="text-xs text-red-500">{errors.title.message}</span>
                   )}
                 </div>
                 <div className="flex flex-col gap-1.5">
@@ -642,7 +640,7 @@ export function PropertyModal({
                   id="numeroPisos"
                   type="number"
                   {...register("numeroPisos", { valueAsNumber: true })}
-                  placeholder="Ej: 1, 2, 3..."
+                  placeholder="0, 1, 2, 3..."
                   className="bg-card w-24"
                 />
               </div>

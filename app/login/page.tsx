@@ -45,7 +45,7 @@ export default function LoginPage() {
         onSubmit={handleSubmit}
         className="w-full max-w-sm space-y-6 rounded-lg bg-card p-8 shadow"
       >
-        <h1 className="text-2xl font-bold text-center">Administración</h1>
+        <h1 className="text-2xl font-bold text-center">RQB-593</h1>
         {error && (
           <p className="text-sm text-destructive text-center">Usuario Inválido</p>
         )}
