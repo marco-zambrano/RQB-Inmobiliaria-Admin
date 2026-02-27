@@ -50,8 +50,7 @@ const propertySchema = z.object({
   patio: z.boolean(),
   seguridadPrivada: z.boolean(),
   balcon: z.boolean(),
-  dospisos: z.boolean(),
-  trespisos: z.boolean(),
+  numeroPisos: z.number().nonnegative().optional(),
   mapsUrl: z.string().optional(),
   imagenes: z.array(z.string()),
 })
@@ -103,8 +102,7 @@ export function PropertyModal({
       patio: false,
       seguridadPrivada: false,
       balcon: false,
-      dospisos: false,
-      trespisos: false,
+      numeroPisos: undefined,
       mapsUrl: "",
       imagenes: [],
     },
@@ -128,6 +126,17 @@ export function PropertyModal({
     })
     if (property) {
       const featuresSet = new Set(property.features ?? [])
+      
+      // Extraer número de pisos de las características
+      let numeroPisos: number | undefined
+      const pisosFeature = Array.from(featuresSet).find(f => f.includes("piso"))
+      if (pisosFeature) {
+        const match = pisosFeature.match(/(\d+)\s*piso?s?/)
+        if (match) {
+          numeroPisos = parseInt(match[1])
+        }
+      }
+      
       reset({
         nombre: property.title,
         precio: property.price,
@@ -150,8 +159,7 @@ export function PropertyModal({
         patio: featuresSet.has("patio"),
         seguridadPrivada: featuresSet.has("seguridadPrivada"),
         balcon: featuresSet.has("balcon"),
-        dospisos: featuresSet.has("dospisos"),
-        trespisos: featuresSet.has("trespisos"),
+        numeroPisos: numeroPisos,
         mapsUrl: property.map_url || "",
         imagenes: (property.images ?? []).map((i) => i.image_url),
       })
@@ -178,8 +186,7 @@ export function PropertyModal({
         patio: false,
         seguridadPrivada: false,
         balcon: false,
-        dospisos: false,
-        trespisos: false,
+        numeroPisos: undefined,
         mapsUrl: "",
         imagenes: [],
       })
@@ -193,8 +200,12 @@ export function PropertyModal({
     if (formData.patio) features.push("patio")
     if (formData.seguridadPrivada) features.push("seguridadPrivada")
     if (formData.balcon) features.push("balcon")
-    if (formData.dospisos) features.push("dospisos")
-    if (formData.trespisos) features.push("trespisos")
+    
+    // Agregar número de pisos a las características
+    if (formData.numeroPisos && formData.numeroPisos > 0) {
+      const pisosText = formData.numeroPisos === 1 ? "1 piso" : `${formData.numeroPisos} pisos`
+      features.push(pisosText)
+    }
 
     const antiquity_years = formData.antiguedadEsNuevo ? 0 : (formData.antiguedadAnos ?? 0)
 
@@ -596,8 +607,6 @@ export function PropertyModal({
                 { id: "patio", label: "Patio" },
                 { id: "seguridadPrivada", label: "Seguridad privada" },
                 { id: "balcon", label: "Balcón" },
-                { id: "dospisos", label: "Dos pisos" },
-                { id: "trespisos", label: "Tres pisos" },
               ].map(({ id, label }) => (
                 <div key={id} className="flex items-center gap-2">
                   <Controller
@@ -616,6 +625,27 @@ export function PropertyModal({
                   </Label>
                 </div>
               ))}
+            </div>
+          </div>
+
+          {/* Detalles de Construcción */}
+          <div>
+            <h3 className="text-lg font-bold text-foreground mb-4">
+              Detalles de Construcción
+            </h3>
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center gap-2">
+                <Label htmlFor="numeroPisos" className="font-semibold text-foreground">
+                  Número de pisos
+                </Label>
+                <Input
+                  id="numeroPisos"
+                  type="number"
+                  {...register("numeroPisos", { valueAsNumber: true })}
+                  placeholder="Ej: 1, 2, 3..."
+                  className="bg-card w-24"
+                />
+              </div>
             </div>
           </div>
 
