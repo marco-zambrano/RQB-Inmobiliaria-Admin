@@ -37,6 +37,7 @@ const propertySchema = z.object({
   tipo: z.enum(["local", "apartamento", "casa", "terreno", "casa rentera"]),
   estado: z.enum(["disponible", "vendida", "negociación"]),
   ventaType: z.enum(["Al contado", "Transacción bancaria", "BIESS", "Fraccionado", "Promesa de compra-venta"]).optional(),
+  propertyOwner: z.string().optional(),
   areaTotales: z.number().nonnegative().optional(),
   areaConstruccion: z.number().nonnegative().optional(),
   habitaciones: z.number().nonnegative().optional(),
@@ -89,6 +90,7 @@ export function PropertyModal({
       tipo: "local",
       estado: "disponible",
       ventaType: undefined,
+      propertyOwner: undefined,
       areaTotales: undefined,
       areaConstruccion: undefined,
       habitaciones: undefined,
@@ -133,6 +135,7 @@ export function PropertyModal({
         provincia: property.province,
         ciudad: property.city,
         ventaType: (property.venta_type as any) ?? undefined,
+        propertyOwner: property.property_owner ?? undefined,
         tipo: property.property_type,
         estado: property.status,
         areaTotales: property.sqm_total ?? undefined,
@@ -162,6 +165,7 @@ export function PropertyModal({
         tipo: "local",
         estado: "disponible",
         ventaType: undefined,
+        propertyOwner: undefined,
         areaTotales: undefined,
         areaConstruccion: undefined,
         habitaciones: undefined,
@@ -243,6 +247,7 @@ export function PropertyModal({
       sqm_built: formData.areaConstruccion ?? null,
       antiquity_years,
       venta_type: formData.ventaType ?? null,
+      property_owner: formData.propertyOwner ?? null,
       address: formData.direccion || "",
       features,
       status: formData.estado as PropertyStatus,
@@ -362,6 +367,18 @@ export function PropertyModal({
                       </SelectContent>
                     </Select>
                   )}
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="propertyOwner" className="font-semibold text-foreground">
+                  Propietario
+                </Label>
+                <Input
+                  id="propertyOwner"
+                  {...register("propertyOwner")}
+                  placeholder="Nombre del propietario"
+                  className="bg-card"
                 />
               </div>
 

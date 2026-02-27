@@ -78,6 +78,7 @@ export function PropertiesTable({ properties, onEdit, onDelete }: PropertiesTabl
             <TableHead className="text-muted-foreground font-normal text-sm">Precio</TableHead>
             <TableHead className="text-muted-foreground font-normal text-sm">Tipo</TableHead>
             <TableHead className="text-muted-foreground font-normal text-sm">Tipo de Venta</TableHead>
+            <TableHead className="text-muted-foreground font-normal text-sm">Propietario</TableHead>
             <TableHead className="text-muted-foreground font-normal text-sm">Provincia</TableHead>
             <TableHead className="text-muted-foreground font-normal text-sm">Estado</TableHead>
             <TableHead className="text-muted-foreground font-normal text-sm">Fecha</TableHead>
@@ -115,6 +116,9 @@ export function PropertiesTable({ properties, onEdit, onDelete }: PropertiesTabl
               </TableCell>
               <TableCell className="text-foreground">
                 {property.venta_type || "-"}
+              </TableCell>
+              <TableCell className="text-foreground">
+                {property.property_owner || "-"}
               </TableCell>
               <TableCell className="text-foreground">
                 {property.province}
@@ -193,6 +197,11 @@ export function PropertiesCards({ properties, onEdit, onDelete }: PropertiesTabl
               {property.venta_type && (
                 <p className="text-xs text-muted-foreground">
                   Venta: {property.venta_type}
+                </p>
+              )}
+              {property.property_owner && (
+                <p className="text-xs text-muted-foreground">
+                  Propietario: {property.property_owner}
                 </p>
               )}
               <p className="text-xs text-muted-foreground">

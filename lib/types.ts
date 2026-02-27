@@ -45,6 +45,8 @@ export interface Property {
 
   venta_type: string | null
 
+  property_owner: string | null
+
   // Relaciones (opcionales, se incluyen cuando se hace JOIN)
   images?: PropertyImage[]
   videos?: PropertyVideo[]
@@ -87,10 +89,12 @@ export interface CreatePropertyDTO {
   longitude?: number
   map_url?: string
   venta_type?: string
+  property_owner?: string
 }
 
 export interface UpdatePropertyDTO extends Partial<CreatePropertyDTO> {
   sold_at?: string
   interest_level?: number
   venta_type?: string
+  property_owner?: string
 }
