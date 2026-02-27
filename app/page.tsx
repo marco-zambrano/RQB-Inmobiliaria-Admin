@@ -17,7 +17,6 @@ import { useProperties } from "@/hooks/use-properties"
 
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState("propiedades")
-  // const [properties, setProperties] = useState<Property[]>([])
 
   // Filters
   const [searchQuery, setSearchQuery] = useState("")
@@ -64,162 +63,139 @@ export default function AdminPage() {
     setDeleteDialogOpen(true)
   }
 
-  function handleConfirmDelete() {
-    const doDelete = async () => {
-      if (!deletingProperty) return
-      try {
-        const id = deletingProperty.id
+  async function handleConfirmDelete() {
+    if (!deletingProperty) return
+    try {
+      const id = deletingProperty.id
 
-        // obtener assets relacionados
-        const { data: images } = await supabase
-          .from("property_images")
-          .select("image_url")
-          .eq("property_id", id)
+      // obtener imágenes y videos al mismo tiempo
+      const [{ data: images }, { data: videos }] = await Promise.all([
+        supabase.from("property_images").select("image_url").eq("property_id", id),
+        supabase.from("property_videos").select("video_url").eq("property_id", id),
+      ])
 
-        const { data: videos } = await supabase
-          .from("property_videos")
-          .select("video_url")
-          .eq("property_id", id)
-
-        const pathsToRemove: string[] = []
-
-        if (images) {
-          for (const im of images) {
-            try {
-              pathsToRemove.push(extractFilePathFromStorageUrl(im.image_url))
-            } catch (e) {
-              // ignore
-            }
-          }
-        }
-
-        if (videos) {
-          for (const v of videos) {
-            try {
-              pathsToRemove.push(extractFilePathFromStorageUrl(v.video_url))
-            } catch (e) {
-              // ignore
-            }
-          }
-        }
-
-        if (pathsToRemove.length > 0) {
-          const { error: storageErr } = await supabase.storage.from(STORAGE_BUCKET).remove(pathsToRemove)
-          if (storageErr) console.error("Storage remove error:", storageErr)
-        }
-
-        await supabase.from("property_images").delete().eq("property_id", id)
-        await supabase.from("property_videos").delete().eq("property_id", id)
-        const { error: delErr } = await supabase.from("properties").delete().eq("id", id)
-        if (delErr) throw delErr
-
-        setProperties((prev) => prev.filter((p) => p.id !== id))
-      } catch (error) {
-        console.error("Delete error:", error)
-        alert("Error al eliminar la propiedad. Revisa la consola.")
-      } finally {
-        setDeleteDialogOpen(false)
-        setDeletingProperty(null)
+      const pathsToRemove: string[] = []
+      for (const im of images ?? []) {
+        try { pathsToRemove.push(extractFilePathFromStorageUrl(im.image_url)) } catch { /* ignore */ }
       }
-    }
+      for (const v of videos ?? []) {
+        try { pathsToRemove.push(extractFilePathFromStorageUrl(v.video_url)) } catch { /* ignore */ }
+      }
 
-    void doDelete()
+      // Eliminar storage + registros de imágenes y videos al mismo tiempo
+      await Promise.all([
+        pathsToRemove.length > 0
+          ? supabase.storage.from(STORAGE_BUCKET).remove(pathsToRemove)
+          : Promise.resolve(),
+        supabase.from("property_images").delete().eq("property_id", id),
+        supabase.from("property_videos").delete().eq("property_id", id),
+      ])
+
+      const { error: delErr } = await supabase.from("properties").delete().eq("id", id)
+      if (delErr) throw delErr
+
+      setProperties((prev) => prev.filter((p) => p.id !== id))
+    } catch (err) {
+      console.error("Delete error:", err)
+      alert("Error al eliminar la propiedad. Revisa la consola.")
+    } finally {
+      setDeleteDialogOpen(false)
+      setDeletingProperty(null)
+    }
   }
 
-  function handleSave(data: Omit<Property, "id">, videos?: string[]) {
-    const doSave = async () => {
-      try {
-        if (editingProperty) {
-          const { images: _imgs, ...dbData } = data
-          const { data: updated, error: updateErr } = await supabase
-            .from("properties")
-            .update(dbData)
-            .eq("id", editingProperty.id)
-            .select()
-            .single()
+  // ✅ Async directo, sin anidamiento
+  async function handleSave(data: Omit<Property, "id">, videos?: string[]) {
+    try {
+      if (editingProperty) {
+        const { images: _imgs, ...dbData } = data
 
-          if (updateErr) throw updateErr
+        const imageUrls = (Array.isArray(_imgs)
+          ? _imgs.map((img) => (typeof img === "string" ? img : img.image_url))
+          : []
+        ).filter((url) => !url.startsWith("blob:"))
 
-          const imageUrls = (Array.isArray(_imgs)
-            ? _imgs.map((img) => (typeof img === "string" ? img : img.image_url))
-            : []
-          ).filter((url) => !url.startsWith("blob:"))
-          await supabase.from("property_images").delete().eq("property_id", editingProperty.id)
-          if (imageUrls.length > 0) {
-            const imagesToInsert = imageUrls.map((url) => ({ property_id: editingProperty.id, image_url: url }))
-            await supabase.from("property_images").insert(imagesToInsert)
-          }
+        // Actualizar propiedad + obtener videos existentes al mismo tiempo
+        const [{ data: updated, error: updateErr }, { data: existingVids }] = await Promise.all([
+          supabase.from("properties").update(dbData).eq("id", editingProperty.id).select().single(),
+          supabase.from("property_videos").select("id, property_id, video_url, created_at").eq("property_id", editingProperty.id),
+        ])
+        if (updateErr) throw updateErr
 
-          // Manejar videos en actualización
-          if (videos && videos.length > 0) {
-            // Obtener videos existentes para preservarlos
-            const { data: existingVids } = await supabase.from("property_videos").select("id, property_id, video_url, created_at").eq("property_id", editingProperty.id)
-            
-            // Eliminar solo los videos que se eliminaron en el modal (no en el array actual)
-            const existingVideoUrls = (existingVids || []).map(v => v.video_url)
-            const videosToDelete = existingVideoUrls.filter(url => !videos.includes(url))
-            
-            if (videosToDelete.length > 0) {
-              await supabase.from("property_videos").delete().in("video_url", videosToDelete)
+        // Reemplazar imágenes y gestionar videos al mismo tiempo
+        const existingVideoUrls = (existingVids ?? []).map((v) => v.video_url)
+        const videosToDelete = existingVideoUrls.filter((url) => !(videos ?? []).includes(url))
+        const newVideoUrls = (videos ?? []).filter((url) => !existingVideoUrls.includes(url))
+
+        await Promise.all([
+          (async () => {
+            await supabase.from("property_images").delete().eq("property_id", editingProperty.id)
+            if (imageUrls.length > 0) {
+              await supabase.from("property_images").insert(
+                imageUrls.map((url) => ({ property_id: editingProperty.id, image_url: url }))
+              )
             }
-            
-            // Insertar solo los videos nuevos (que no existen)
-            const newVideoUrls = videos.filter(url => !existingVideoUrls.includes(url))
-            if (newVideoUrls.length > 0) {
-              const videosToInsert = newVideoUrls.map((url) => ({ property_id: editingProperty.id, video_url: url }))
-              await supabase.from("property_videos").insert(videosToInsert)
-            }
-          }
+          })(),
+          // Videos: delete los removidos
+          videosToDelete.length > 0
+            ? supabase.from("property_videos").delete().in("video_url", videosToDelete)
+            : Promise.resolve(),
+          // Videos: insert los nuevos
+          newVideoUrls.length > 0
+            ? supabase.from("property_videos").insert(newVideoUrls.map((url) => ({ property_id: editingProperty.id, video_url: url })))
+            : Promise.resolve(),
+        ])
 
-          const { data: imgs } = await supabase.from("property_images").select("id, property_id, image_url, created_at").eq("property_id", editingProperty.id)
-          const { data: vids } = await supabase.from("property_videos").select("id, property_id, video_url, created_at").eq("property_id", editingProperty.id)
+        // Fetch final de imgs y vids al mismo tiempo
+        const [{ data: imgs }, { data: vids }] = await Promise.all([
+          supabase.from("property_images").select("id, property_id, image_url, created_at").eq("property_id", editingProperty.id),
+          supabase.from("property_videos").select("id, property_id, video_url, created_at").eq("property_id", editingProperty.id),
+        ])
 
-          setProperties((prev) =>
-            prev.map((p) =>
-              p.id === editingProperty.id
-                ? { 
-                    ...updated, 
-                    images: (imgs || []).map((i) => ({ id: i.id, property_id: i.property_id, image_url: i.image_url, created_at: i.created_at })),
-                    videos: (vids || []).map((v) => ({ id: v.id, property_id: v.property_id, video_url: v.video_url, created_at: v.created_at }))
-                  }
-                : p
-            )
+        setProperties((prev) =>
+          prev.map((p) =>
+            p.id === editingProperty.id
+              ? { ...updated, images: imgs ?? [], videos: vids ?? [] }
+              : p
           )
-        } else {
-          const { images: _imgs, ...dbData } = data
-          const imageUrls = (Array.isArray(_imgs)
-            ? _imgs.map((img) => (typeof img === "string" ? img : img.image_url))
-            : []
-          ).filter((url) => !url.startsWith("blob:"))
-          const { data: created, error: insertErr } = await supabase.from("properties").insert([dbData]).select().single()
-          if (insertErr) throw insertErr
+        )
+      } else {
+        const { images: _imgs, ...dbData } = data
 
-          if (imageUrls.length > 0) {
-            const imagesToInsert = imageUrls.map((url) => ({ property_id: created.id, image_url: url }))
-            await supabase.from("property_images").insert(imagesToInsert)
-          }
+        const imageUrls = (Array.isArray(_imgs)
+          ? _imgs.map((img) => (typeof img === "string" ? img : img.image_url))
+          : []
+        ).filter((url) => !url.startsWith("blob:"))
 
-          // Manejar videos en creación
-          if (videos && videos.length > 0) {
-            const videosToInsert = videos.map((url) => ({ property_id: created.id, video_url: url }))
-            await supabase.from("property_videos").insert(videosToInsert)
-          }
+        const { data: created, error: insertErr } = await supabase
+          .from("properties")
+          .insert([dbData])
+          .select()
+          .single()
+        if (insertErr) throw insertErr
 
-          const { data: imgs } = await supabase.from("property_images").select("id, property_id, image_url, created_at").eq("property_id", created.id)
-          const { data: vids } = await supabase.from("property_videos").select("id, property_id, video_url, created_at").eq("property_id", created.id)
-          setProperties((prev) => [...prev, { 
-            ...created, 
-            images: (imgs || []).map((i) => ({ id: i.id, property_id: i.property_id, image_url: i.image_url, created_at: i.created_at })),
-            videos: (vids || []).map((v) => ({ id: v.id, property_id: v.property_id, video_url: v.video_url, created_at: v.created_at }))
-          }])
-        }
-      } catch (error) {
-        console.error("Save error:", error)
-        alert("Error al guardar la propiedad. Revisa la consola.")
+        // Insertar imágenes y videos al mismo tiempo
+        await Promise.all([
+          imageUrls.length > 0
+            ? supabase.from("property_images").insert(imageUrls.map((url) => ({ property_id: created.id, image_url: url })))
+            : Promise.resolve(),
+          (videos ?? []).length > 0
+            ? supabase.from("property_videos").insert((videos ?? []).map((url) => ({ property_id: created.id, video_url: url })))
+            : Promise.resolve(),
+        ])
+
+        // Fetch final
+        const [{ data: imgs }, { data: vids }] = await Promise.all([
+          supabase.from("property_images").select("id, property_id, image_url, created_at").eq("property_id", created.id),
+          supabase.from("property_videos").select("id, property_id, video_url, created_at").eq("property_id", created.id),
+        ])
+
+        setProperties((prev) => [...prev, { ...created, images: imgs ?? [], videos: vids ?? [] }])
       }
+    } catch (err) {
+      console.error("Save error:", err)
+      alert("Error al guardar la propiedad. Revisa la consola.")
     }
-
-    void doSave()
   }
 
   function handleClearFilters() {
