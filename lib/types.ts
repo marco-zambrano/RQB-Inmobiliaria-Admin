@@ -2,8 +2,8 @@
 // ENUMS
 // =========================
 
-export type PropertyType = 'negocio' | 'apartamento' | 'casa'
-export type PropertyStatus = 'disponible' | 'vendida'
+export type PropertyType = 'local' | 'apartamento' | 'casa' | 'terreno' | 'casa rentera'
+export type PropertyStatus = 'disponible' | 'vendida' | 'negociación'
 
 // =========================
 // INTERFACES PRINCIPALES
@@ -27,7 +27,7 @@ export interface Property {
   bedrooms: number | null
   bathrooms: number | null
 
-  antiquity_years: number
+  antiquity_years: number | null
 
   description: string | null
 
@@ -42,6 +42,8 @@ export interface Property {
   sold_at: string | null
 
   created_at: string
+
+  venta_type: string | null
 
   // Relaciones (opcionales, se incluyen cuando se hace JOIN)
   images?: PropertyImage[]
@@ -84,9 +86,11 @@ export interface CreatePropertyDTO {
   latitude?: number
   longitude?: number
   map_url?: string
+  venta_type?: string
 }
 
 export interface UpdatePropertyDTO extends Partial<CreatePropertyDTO> {
   sold_at?: string
   interest_level?: number
+  venta_type?: string
 }

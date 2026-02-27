@@ -34,8 +34,9 @@ const propertySchema = z.object({
   direccion: z.string().optional(),
   provincia: z.string().min(1, "Selecciona una provincia"),
   ciudad: z.string().min(1, "Selecciona una ciudad"),
-  tipo: z.enum(["negocio", "apartamento", "casa"]),
-  estado: z.enum(["disponible", "vendida"]),
+  tipo: z.enum(["local", "apartamento", "casa", "terreno", "casa rentera"]),
+  estado: z.enum(["disponible", "vendida", "negociación"]),
+  ventaType: z.enum(["al contado", "transacción bancaria", "BIESS", "fraccionado", "promesa de compra-venta"]).optional(),
   areaTotales: z.number().nonnegative().optional(),
   areaConstruccion: z.number().nonnegative().optional(),
   habitaciones: z.number().nonnegative().optional(),
@@ -85,8 +86,9 @@ export function PropertyModal({
       direccion: "",
       provincia: "",
       ciudad: "",
-      tipo: "negocio",
+      tipo: "local",
       estado: "disponible",
+      ventaType: undefined,
       areaTotales: undefined,
       areaConstruccion: undefined,
       habitaciones: undefined,
@@ -130,6 +132,7 @@ export function PropertyModal({
         direccion: property.address,
         provincia: property.province,
         ciudad: property.city,
+        ventaType: (property.venta_type as any) ?? undefined,
         tipo: property.property_type,
         estado: property.status,
         areaTotales: property.sqm_total ?? undefined,
@@ -156,8 +159,9 @@ export function PropertyModal({
         direccion: "",
         provincia: "",
         ciudad: "",
-        tipo: "negocio",
+        tipo: "local",
         estado: "disponible",
+        ventaType: undefined,
         areaTotales: undefined,
         areaConstruccion: undefined,
         habitaciones: undefined,
@@ -238,6 +242,7 @@ export function PropertyModal({
       sqm_total: formData.areaTotales ?? null,
       sqm_built: formData.areaConstruccion ?? null,
       antiquity_years,
+      venta_type: formData.ventaType ?? null,
       address: formData.direccion || "",
       features,
       status: formData.estado as PropertyStatus,
@@ -335,6 +340,28 @@ export function PropertyModal({
                   id="direccion"
                   {...register("direccion")}
                   className="bg-card"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <Label className="font-semibold text-foreground">Tipo de Venta</Label>
+                <Controller
+                  name="ventaType"
+                  control={control}
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger className="bg-card">
+                        <SelectValue placeholder="Seleccionar tipo de venta" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="al contado">Al contado</SelectItem>
+                        <SelectItem value="transacción bancaria">Transacción bancaria</SelectItem>
+                        <SelectItem value="BIESS">BIESS</SelectItem>
+                        <SelectItem value="fraccionado">Fraccionado</SelectItem>
+                        <SelectItem value="promesa de compra-venta">Promesa de compra-venta</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
                 />
               </div>
 
@@ -605,14 +632,17 @@ export function PropertyModal({
                         e.stopPropagation()
                         if (!confirm("¿Deseas eliminar esta imagen?")) return
                         try {
+                          console.log("Eliminando imagen del storage:", imagen)
                           await deleteImageFromSupabase(imagen)
+                          console.log("Imagen eliminada del storage correctamente")
                           setValue(
                             "imagenes",
                             imagenes.filter((_, i) => i !== idx)
                           )
+                          console.log("Imagen eliminada del estado del formulario")
                         } catch (error) {
                           console.error("Error deleting image:", error)
-                          alert("Error al eliminar la imagen. Por favor intenta de nuevo.")
+                          alert("Error al eliminar la imagen del storage. Por favor intenta de nuevo.")
                         }
                       }}
                       className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity"

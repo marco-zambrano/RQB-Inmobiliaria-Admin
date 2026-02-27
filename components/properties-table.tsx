@@ -30,6 +30,10 @@ function StatusBadge({ status }: { status: string }) {
       label: "Vendida",
       className: "border-transparent bg-muted-foreground text-white hover:bg-muted-foreground",
     },
+    negociacion: {
+      label: "Negociación",
+      className: "border-transparent bg-yellow-600 text-white hover:bg-yellow-600",
+    },
   }
 
   const { label, className } = config[status] ?? {
@@ -69,10 +73,11 @@ export function PropertiesTable({ properties, onEdit, onDelete }: PropertiesTabl
       <Table>
         <TableHeader>
           <TableRow className="hover:bg-transparent">
-            <TableHead className="w-[80px] text-muted-foreground font-normal text-sm">Imagen</TableHead>
+            <TableHead className="text-muted-foreground font-normal text-sm">Imagen</TableHead>
             <TableHead className="text-muted-foreground font-normal text-sm">Titulo</TableHead>
             <TableHead className="text-muted-foreground font-normal text-sm">Precio</TableHead>
             <TableHead className="text-muted-foreground font-normal text-sm">Tipo</TableHead>
+            <TableHead className="text-muted-foreground font-normal text-sm">Tipo de Venta</TableHead>
             <TableHead className="text-muted-foreground font-normal text-sm">Provincia</TableHead>
             <TableHead className="text-muted-foreground font-normal text-sm">Estado</TableHead>
             <TableHead className="text-muted-foreground font-normal text-sm">Fecha</TableHead>
@@ -107,6 +112,9 @@ export function PropertiesTable({ properties, onEdit, onDelete }: PropertiesTabl
               </TableCell>
               <TableCell className="text-foreground capitalize">
                 {property.property_type}
+              </TableCell>
+              <TableCell className="text-foreground">
+                {property.venta_type || "-"}
               </TableCell>
               <TableCell className="text-foreground">
                 {property.province}
@@ -182,6 +190,11 @@ export function PropertiesCards({ properties, onEdit, onDelete }: PropertiesTabl
                 <span className="text-xs text-muted-foreground">{property.province}</span>
                 <StatusBadge status={property.status} />
               </div>
+              {property.venta_type && (
+                <p className="text-xs text-muted-foreground">
+                  Venta: {property.venta_type}
+                </p>
+              )}
               <p className="text-xs text-muted-foreground">
                 {property.created_at ? new Date(property.created_at).toLocaleDateString("es-EC") : "-"}
               </p>

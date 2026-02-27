@@ -69,17 +69,23 @@ export function extractFilePathFromStorageUrl(url: string): string {
 
 export async function deleteImageFromSupabase(imageUrl: string): Promise<void> {
   try {
+    console.log("Iniciando eliminación de imagen:", imageUrl);
     const filePath = extractFilePathFromStorageUrl(imageUrl);
+    console.log("Path extraído del storage:", filePath);
 
-    const { error } = await supabase.storage
+    const { error, data } = await supabase.storage
       .from(STORAGE_BUCKET)
       .remove([filePath]);
-
+  
+    
     if (error) {
-      throw new Error(`Error deleting file: ${error.message}`);
+      console.error("Error de Supabase al eliminar archivo:", error);
+      throw new Error(`Error deleting file from storage: ${error.message}`);
     }
+
+    console.log("Archivo eliminado exitosamente del storage:", data);
   } catch (error) {
-    console.error("Delete error:", error);
+    console.error("Error completo al eliminar imagen:", error);
     throw error;
   }
 }

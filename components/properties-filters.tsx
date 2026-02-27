@@ -72,6 +72,7 @@ export function PropertiesFilters({
             <SelectItem value="all">Todos los estados</SelectItem>
             <SelectItem value="disponible">Disponible</SelectItem>
             <SelectItem value="vendida">Vendida</SelectItem>
+            <SelectItem value="negociación">Negociación</SelectItem>
           </SelectContent>
         </Select>
 
@@ -83,7 +84,9 @@ export function PropertiesFilters({
             <SelectItem value="all">Todos los tipos</SelectItem>
             <SelectItem value="casa">Casa</SelectItem>
             <SelectItem value="apartamento">Apartamento</SelectItem>
-            <SelectItem value="negocio">Negocio</SelectItem>
+            <SelectItem value="local">Local</SelectItem>
+            <SelectItem value="terreno">Terreno</SelectItem>
+            <SelectItem value="casa rentera">Casa Rentera</SelectItem>
           </SelectContent>
         </Select>
 
