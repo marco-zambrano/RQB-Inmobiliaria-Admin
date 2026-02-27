@@ -14,195 +14,30 @@ import type { Property } from "@/lib/types"
 import { useIsMobile } from "@/hooks/use-mobile"
 import AuthGuard from "@/components/auth-guard"
 import { useProperties } from "@/hooks/use-properties"
+import { usePropertyFilters } from "@/hooks/use-property-filters"
+import { usePropertyActions } from "@/hooks/use-property-actions"
 
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState("propiedades")
 
-  // Filters hooks
-  const [searchQuery, setSearchQuery] = useState("")
-  const [selectedProvincia, setSelectedProvincia] = useState("all")
-  const [selectedEstado, setSelectedEstado] = useState("all")
-  const [selectedTipo, setSelectedTipo] = useState("all")
-
-  // Modals hooks
-  const [modalOpen, setModalOpen] = useState(false)
-  const [editingProperty, setEditingProperty] = useState<Property | null>(null)
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [deletingProperty, setDeletingProperty] = useState<Property | null>(null)
+  // // Modals hooks
+  // const [modalOpen, setModalOpen] = useState(false)
+  // const [editingProperty, setEditingProperty] = useState<Property | null>(null)
+  // const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  // const [deletingProperty, setDeletingProperty] = useState<Property | null>(null)
 
   const isMobile = useIsMobile()
   const { properties, setProperties, loading, error } = useProperties()
 
-  // Filters
-  const filteredProperties = useMemo(() => {
-    return properties.filter((p) => {
-      const matchesSearch = (p.title || "")
-        .toLowerCase()
-        .includes(searchQuery.toLowerCase())
-      const matchesProvincia =
-        selectedProvincia === "all" || p.province === selectedProvincia
-      const matchesEstado =
-        selectedEstado === "all" || p.status === selectedEstado
-      const matchesTipo =
-        selectedTipo === "all" || p.property_type === selectedTipo
-      return matchesSearch && matchesProvincia && matchesEstado && matchesTipo
-    })
-  }, [properties, searchQuery, selectedProvincia, selectedEstado, selectedTipo])
+  // Filters hooks
+  const { filteredProperties, 
+    searchQuery, setSearchQuery, 
+    selectedProvincia, setSelectedProvincia, 
+    selectedEstado, setSelectedEstado, 
+    selectedTipo, setSelectedTipo, 
+    handleClearFilters } = usePropertyFilters(properties)
 
-  function handleClearFilters() {
-    setSearchQuery("")
-    setSelectedProvincia("all")
-    setSelectedEstado("all")
-    setSelectedTipo("all")
-  }
-
-  // Modals
-  function handleAdd() {
-    setEditingProperty(null)
-    setModalOpen(true)
-  }
-  function handleEdit(property: Property) {
-    setEditingProperty(property)
-    setModalOpen(true)
-  }
-  function handleDelete(property: Property) {
-    setDeletingProperty(property)
-    setDeleteDialogOpen(true)
-  }
-
-  async function handleConfirmDelete() {
-    if (!deletingProperty) return
-    try {
-      const id = deletingProperty.id
-
-      // obtener imágenes y videos al mismo tiempo
-      const [{ data: images }, { data: videos }] = await Promise.all([
-        supabase.from("property_images").select("image_url").eq("property_id", id),
-        supabase.from("property_videos").select("video_url").eq("property_id", id),
-      ])
-
-      const pathsToRemove: string[] = []
-      for (const im of images ?? []) {
-        try { pathsToRemove.push(extractFilePathFromStorageUrl(im.image_url)) } catch { /* ignore */ }
-      }
-      for (const v of videos ?? []) {
-        try { pathsToRemove.push(extractFilePathFromStorageUrl(v.video_url)) } catch { /* ignore */ }
-      }
-
-      // Eliminar storage + registros de imágenes y videos al mismo tiempo
-      await Promise.all([
-        pathsToRemove.length > 0
-          ? supabase.storage.from(STORAGE_BUCKET).remove(pathsToRemove)
-          : Promise.resolve(),
-        supabase.from("property_images").delete().eq("property_id", id),
-        supabase.from("property_videos").delete().eq("property_id", id),
-      ])
-
-      const { error: delErr } = await supabase.from("properties").delete().eq("id", id)
-      if (delErr) throw delErr
-
-      setProperties((prev) => prev.filter((p) => p.id !== id))
-    } catch (err) {
-      console.error("Delete error:", err)
-      alert("Error al eliminar la propiedad. Revisa la consola.")
-    } finally {
-      setDeleteDialogOpen(false)
-      setDeletingProperty(null)
-    }
-  }
-
-  async function handleSave(data: Omit<Property, "id">, videos?: string[]) {
-    try {
-      if (editingProperty) {
-        const { images: _imgs, ...dbData } = data
-
-        const imageUrls = (Array.isArray(_imgs)
-          ? _imgs.map((img) => (typeof img === "string" ? img : img.image_url))
-          : []
-        ).filter((url) => !url.startsWith("blob:"))
-
-        // Actualizar propiedad + obtener videos existentes al mismo tiempo
-        const [{ data: updated, error: updateErr }, { data: existingVids }] = await Promise.all([
-          supabase.from("properties").update(dbData).eq("id", editingProperty.id).select().single(),
-          supabase.from("property_videos").select("id, property_id, video_url, created_at").eq("property_id", editingProperty.id),
-        ])
-        if (updateErr) throw updateErr
-
-        // Reemplazar imágenes y gestionar videos al mismo tiempo
-        const existingVideoUrls = (existingVids ?? []).map((v) => v.video_url)
-        const videosToDelete = existingVideoUrls.filter((url) => !(videos ?? []).includes(url))
-        const newVideoUrls = (videos ?? []).filter((url) => !existingVideoUrls.includes(url))
-
-        await Promise.all([
-          (async () => {
-            await supabase.from("property_images").delete().eq("property_id", editingProperty.id)
-            if (imageUrls.length > 0) {
-              await supabase.from("property_images").insert(
-                imageUrls.map((url) => ({ property_id: editingProperty.id, image_url: url }))
-              )
-            }
-          })(),
-          // Videos: delete los removidos
-          videosToDelete.length > 0
-            ? supabase.from("property_videos").delete().in("video_url", videosToDelete)
-            : Promise.resolve(),
-          // Videos: insert los nuevos
-          newVideoUrls.length > 0
-            ? supabase.from("property_videos").insert(newVideoUrls.map((url) => ({ property_id: editingProperty.id, video_url: url })))
-            : Promise.resolve(),
-        ])
-
-        // Fetch final de imgs y vids al mismo tiempo
-        const [{ data: imgs }, { data: vids }] = await Promise.all([
-          supabase.from("property_images").select("id, property_id, image_url, created_at").eq("property_id", editingProperty.id),
-          supabase.from("property_videos").select("id, property_id, video_url, created_at").eq("property_id", editingProperty.id),
-        ])
-
-        setProperties((prev) =>
-          prev.map((p) =>
-            p.id === editingProperty.id
-              ? { ...updated, images: imgs ?? [], videos: vids ?? [] }
-              : p
-          )
-        )
-      } else {
-        const { images: _imgs, ...dbData } = data
-
-        const imageUrls = (Array.isArray(_imgs)
-          ? _imgs.map((img) => (typeof img === "string" ? img : img.image_url))
-          : []
-        ).filter((url) => !url.startsWith("blob:"))
-
-        const { data: created, error: insertErr } = await supabase
-          .from("properties")
-          .insert([dbData])
-          .select()
-          .single()
-        if (insertErr) throw insertErr
-
-        // Insertar imágenes y videos al mismo tiempo
-        await Promise.all([
-          imageUrls.length > 0
-            ? supabase.from("property_images").insert(imageUrls.map((url) => ({ property_id: created.id, image_url: url })))
-            : Promise.resolve(),
-          (videos ?? []).length > 0
-            ? supabase.from("property_videos").insert((videos ?? []).map((url) => ({ property_id: created.id, video_url: url })))
-            : Promise.resolve(),
-        ])
-
-        // Fetch final
-        const [{ data: imgs }, { data: vids }] = await Promise.all([
-          supabase.from("property_images").select("id, property_id, image_url, created_at").eq("property_id", created.id),
-          supabase.from("property_videos").select("id, property_id, video_url, created_at").eq("property_id", created.id),
-        ])
-
-        setProperties((prev) => [...prev, { ...created, images: imgs ?? [], videos: vids ?? [] }])
-      }
-    } catch (err) {
-      console.error("Save error:", err)
-      alert("Error al guardar la propiedad. Revisa la consola.")
-    }
-  }
+    const { handleAdd, handleEdit, handleDelete, handleConfirmDelete, handleSave, modalOpen, setModalOpen, editingProperty, deleteDialogOpen, setDeleteDialogOpen, deletingProperty } = usePropertyActions(setProperties)
 
   return (
     <AuthGuard>
