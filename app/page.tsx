@@ -153,7 +153,7 @@ export default function AdminPage() {
     void doDelete()
   }
 
-  function handleSave(data: Omit<Property, "id">) {
+  function handleSave(data: Omit<Property, "id">, videos?: string[]) {
     const doSave = async () => {
       try {
         if (editingProperty) {
@@ -177,12 +177,27 @@ export default function AdminPage() {
             await supabase.from("property_images").insert(imagesToInsert)
           }
 
+          // Manejar videos
+          if (videos && videos.length > 0) {
+            // Eliminar videos existentes
+            await supabase.from("property_videos").delete().eq("property_id", editingProperty.id)
+            
+            // Insertar nuevos videos
+            const videosToInsert = videos.map((url) => ({ property_id: editingProperty.id, video_url: url }))
+            await supabase.from("property_videos").insert(videosToInsert)
+          }
+
           const { data: imgs } = await supabase.from("property_images").select("id, property_id, image_url, created_at").eq("property_id", editingProperty.id)
+          const { data: vids } = await supabase.from("property_videos").select("id, property_id, video_url, created_at").eq("property_id", editingProperty.id)
 
           setProperties((prev) =>
             prev.map((p) =>
               p.id === editingProperty.id
-                ? { ...updated, images: (imgs || []).map((i) => ({ id: i.id, property_id: i.property_id, image_url: i.image_url, created_at: i.created_at })) }
+                ? { 
+                    ...updated, 
+                    images: (imgs || []).map((i) => ({ id: i.id, property_id: i.property_id, image_url: i.image_url, created_at: i.created_at })),
+                    videos: (vids || []).map((v) => ({ id: v.id, property_id: v.property_id, video_url: v.video_url, created_at: v.created_at }))
+                  }
                 : p
             )
           )
@@ -200,8 +215,19 @@ export default function AdminPage() {
             await supabase.from("property_images").insert(imagesToInsert)
           }
 
+          // Manejar videos en creación
+          if (videos && videos.length > 0) {
+            const videosToInsert = videos.map((url) => ({ property_id: created.id, video_url: url }))
+            await supabase.from("property_videos").insert(videosToInsert)
+          }
+
           const { data: imgs } = await supabase.from("property_images").select("id, property_id, image_url, created_at").eq("property_id", created.id)
-          setProperties((prev) => [...prev, { ...created, images: (imgs || []).map((i) => ({ id: i.id, property_id: i.property_id, image_url: i.image_url, created_at: i.created_at })) }])
+          const { data: vids } = await supabase.from("property_videos").select("id, property_id, video_url, created_at").eq("property_id", created.id)
+          setProperties((prev) => [...prev, { 
+            ...created, 
+            images: (imgs || []).map((i) => ({ id: i.id, property_id: i.property_id, image_url: i.image_url, created_at: i.created_at })),
+            videos: (vids || []).map((v) => ({ id: v.id, property_id: v.property_id, video_url: v.video_url, created_at: v.created_at }))
+          }])
         }
       } catch (error) {
         console.error("Save error:", error)

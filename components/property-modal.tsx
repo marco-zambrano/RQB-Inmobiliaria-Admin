@@ -26,7 +26,7 @@ import { provinciasEcuador, tiposPropiedad } from "@/lib/data"
 import type { Property, PropertyStatus, PropertyType } from "@/lib/types"
 import { Upload, X } from "lucide-react"
 import { MapPreview } from "./map-preview"
-import { uploadImageToSupabase, deleteImageFromSupabase } from "@/lib/supabaseClient"
+import { uploadImageToSupabase, deleteImageFromSupabase, uploadVideoToSupabase, deleteVideoFromSupabase, saveVideoToDatabase } from "@/lib/supabaseClient"
 
 const propertySchema = z.object({
   title: z.string().min(3, "El nombre debe tener al menos 3 caracteres"),
@@ -61,7 +61,7 @@ interface PropertyModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   property?: Property | null
-  onSave: (property: Omit<Property, "id">) => void
+  onSave: (property: Omit<Property, "id">, videos?: string[]) => void
 }
 
 export function PropertyModal({
@@ -113,7 +113,10 @@ export function PropertyModal({
   const imagenes = watch("imagenes")
   const mapsUrl = watch("mapsUrl")
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const videoInputRef = useRef<HTMLInputElement>(null)
   const [pendingFiles, setPendingFiles] = useState<{ id: string; url: string; file: File }[]>([])
+  const [pendingVideos, setPendingVideos] = useState<{ id: string; url: string; file: File }[]>([])
+  const [existingVideos, setExistingVideos] = useState<string[]>([])
 
   const ciudadesDisponibles = provincia
     ? (provinciasEcuador[provincia as keyof typeof provinciasEcuador] || [])
@@ -121,6 +124,10 @@ export function PropertyModal({
 
   useEffect(() => {
     setPendingFiles((prev) => {
+      prev.forEach((p) => URL.revokeObjectURL(p.url))
+      return []
+    })
+    setPendingVideos((prev) => {
       prev.forEach((p) => URL.revokeObjectURL(p.url))
       return []
     })
@@ -136,6 +143,9 @@ export function PropertyModal({
           numeroPisos = parseInt(match[1])
         }
       }
+      
+      // Cargar videos existentes
+      setExistingVideos((property.videos ?? []).map((v) => v.video_url))
       
       reset({
         title: property.title,
@@ -225,6 +235,22 @@ export function PropertyModal({
     }
     const urlsSupabase = [...urlsExistentes, ...urlsNuevas]
 
+    // Subir solo los videos pendientes (nuevos) a Supabase al guardar
+    const videosExistentes = existingVideos
+    const videosNuevos: string[] = []
+    for (const p of pendingVideos) {
+      try {
+        const url = await uploadVideoToSupabase(p.file)
+        videosNuevos.push(url)
+        URL.revokeObjectURL(p.url)
+      } catch (error) {
+        console.error("Error subiendo video:", error)
+        alert("Error al subir los videos. Por favor intenta de nuevo.")
+        return
+      }
+    }
+    const videosSupabase = [...videosExistentes, ...videosNuevos]
+
     // Normalizar la URL de Google Maps a una URL válida para iframe (vía API para evitar CORS)
     let mapUrlValue = ""
     if (formData.mapsUrl && formData.mapsUrl.trim() !== "") {
@@ -243,7 +269,7 @@ export function PropertyModal({
       }
     }
 
-    onSave({
+    const propertyData: Omit<Property, "id"> = {
       title: formData.title,
       description: formData.descripcion ?? "",
       price: formData.precio || 0,
@@ -270,8 +296,18 @@ export function PropertyModal({
         image_url: url,
         created_at: "",
       })),
-    })
+    }
+    
+    // Guardar videos nuevos en la base de datos
+    if (videosNuevos.length > 0) {
+      // Pasar los videos nuevos al onSave para que los gestione externamente
+      onSave(propertyData, videosNuevos)
+    } else {
+      onSave(propertyData)
+    }
+    
     setPendingFiles([])
+    setPendingVideos([])
     onOpenChange(false)
   }
 
@@ -287,6 +323,20 @@ export function PropertyModal({
       file,
     }))
     setPendingFiles((prev) => [...prev, ...nuevos])
+  }
+
+  const handleVideoUpload = (files: FileList) => {
+    const fileArray = Array.from(files).filter(
+      (f) => f.type === "video/mp4" || f.type === "video/webm" || f.type === "video/ogg" || f.type === "video/quicktime"
+    )
+    if (fileArray.length === 0) return
+
+    const nuevos = fileArray.map((file) => ({
+      id: crypto.randomUUID(),
+      url: URL.createObjectURL(file),
+      file,
+    }))
+    setPendingVideos((prev) => [...prev, ...nuevos])
   }
 
   const handleDragDrop = (e: React.DragEvent) => {
@@ -752,6 +802,102 @@ export function PropertyModal({
                 </span>
                 <span className="text-xs text-muted-foreground">
                   PNG, JPG hasta 10MB
+                </span>
+              </div>
+            </label>
+          </div>
+
+          {/* Videos */}
+          <div>
+            <h3 className="text-lg font-bold text-foreground mb-4">Videos</h3>
+            
+            {(existingVideos.length > 0 || pendingVideos.length > 0) && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
+                {existingVideos.map((video: string, idx: number) => (
+                  <div key={`exist-video-${idx}-${video.slice(-20)}`} className="relative group">
+                    <video
+                      src={video}
+                      className="w-full h-24 object-cover rounded-md bg-muted"
+                      muted
+                      playsInline
+                    />
+                    <button
+                      type="button"
+                      onClick={async (e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        if (!confirm("¿Deseas eliminar este video?")) return
+                        try {
+                          console.log("Eliminando video del storage:", video)
+                          await deleteVideoFromSupabase(video)
+                          console.log("Video eliminado del storage correctamente")
+                          setExistingVideos((prev) => prev.filter((_, i) => i !== idx))
+                          console.log("Video eliminado del estado del formulario")
+                        } catch (error) {
+                          console.error("Error deleting video:", error)
+                          alert("Error al eliminar el video del storage. Por favor intenta de nuevo.")
+                        }
+                      }}
+                      className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+                {pendingVideos.map((p) => (
+                  <div key={p.id} className="relative group">
+                    <video
+                      src={p.url}
+                      className="w-full h-24 object-cover rounded-md bg-muted"
+                      muted
+                      playsInline
+                    />
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        if (!confirm("¿Deseas eliminar este video?")) return
+                        URL.revokeObjectURL(p.url)
+                        setPendingVideos((prev) => prev.filter((x) => x.id !== p.id))
+                      }}
+                      className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Área de drag-drop para videos */}
+            <label
+              htmlFor="video-upload"
+              className="flex flex-col items-center justify-center w-full cursor-pointer rounded-md border-2 border-dashed border-border bg-muted/50 py-10 gap-2 hover:bg-muted/70 transition-colors"
+            >
+              <input
+                ref={videoInputRef}
+                id="video-upload"
+                type="file"
+                multiple
+                accept="video/mp4,video/webm,video/ogg,video/quicktime"
+                onChange={(e) => {
+                  const files = e.target.files
+                  if (files?.length) {
+                    handleVideoUpload(files)
+                    e.target.value = ""
+                  }
+                }}
+                className="sr-only"
+                tabIndex={-1}
+              />
+              <div className="flex flex-col items-center justify-center gap-2 pointer-events-none">
+                <Upload className="size-8 text-muted-foreground" />
+                <span className="text-sm text-accent-foreground font-medium">
+                  Arrastra videos aquí o haz click para seleccionar
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  MP4, WebM, OGG hasta 50MB
                 </span>
               </div>
             </label>
