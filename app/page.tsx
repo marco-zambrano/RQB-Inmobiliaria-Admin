@@ -1,26 +1,23 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import { Plus } from "lucide-react"
+import { Plus, LogOut } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { AdminSidebar } from "@/components/admin-sidebar"
 import { PropertiesTable, PropertiesCards } from "@/components/properties-table"
 import { PropertiesFilters } from "@/components/properties-filters"
 import { PropertyModal } from "@/components/property-modal"
 import { DeleteDialog } from "@/components/delete-dialog"
-import { DashboardView } from "@/components/dashboard-view"
 import { supabase, STORAGE_BUCKET, extractFilePathFromStorageUrl } from "@/lib/supabaseClient"
 import type { Property } from "@/lib/types"
 import { useIsMobile } from "@/hooks/use-mobile"
+import { useRouter } from "next/navigation"
 import AuthGuard from "@/components/auth-guard"
 import { useProperties } from "@/hooks/use-properties"
 import { usePropertyFilters } from "@/hooks/use-property-filters"
 import { usePropertyActions } from "@/hooks/use-property-actions"
 
 export default function AdminPage() {
-  const [activeTab, setActiveTab] = useState("propiedades")
-
-
+  const router = useRouter()
   const isMobile = useIsMobile()
   const { properties, setProperties, loading, error } = useProperties()
 
@@ -42,21 +39,36 @@ export default function AdminPage() {
       deleteDialogOpen, setDeleteDialogOpen,
       deletingProperty } = usePropertyActions(setProperties)
 
+  const handleSignOut = async () => {
+    await supabase.auth.signOut()
+    router.push("/login")
+  }
+
   return (
     <AuthGuard>
-      <div className="flex min-h-screen">
-      {!isMobile && (
-        <AdminSidebar activeTab={activeTab} onTabChange={setActiveTab} />
-      )}
+      <div className="min-h-screen bg-background">
+        {/* Header */}
+        <header className="border-b border-border bg-card">
+          <div className="flex items-center justify-between px-8 py-4">
+            <div className="flex items-center gap-2.5">
+              <div className="flex size-8 items-center justify-center rounded-md bg-accent">
+                <span className="text-sm font-bold text-accent-foreground">RQB</span>
+              </div>
+              <h1 className="text-xl font-bold text-foreground">Panel de Administración</h1>
+            </div>
+            <Button
+              onClick={handleSignOut}
+              variant="outline"
+              className="flex items-center gap-2 cursor-pointer"
+            >
+              <LogOut className="size-4" />
+              Cerrar sesión
+            </Button>
+          </div>
+        </header>
 
-      <main
-        className={`flex-1 ${isMobile ? "px-4 py-6" : "ml-52.5 px-8 py-8"}`}
-      >
-        {activeTab === "dashboard" && (
-          <DashboardView properties={properties} />
-        )}
-
-        {activeTab === "propiedades" && (
+        {/* Main Content */}
+        <main className="px-8 py-8">
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <h1 className="text-2xl font-semibold tracking-tight text-foreground">
@@ -94,48 +106,22 @@ export default function AdminPage() {
               />
             )}
           </div>
-        )}
+        </main>
 
-        {isMobile && (
-          <nav className="fixed bottom-0 left-0 right-0 z-50 flex border-t border-border bg-card">
-            <button
-              onClick={() => setActiveTab("dashboard")}
-              className={`flex flex-1 flex-col items-center gap-1 py-3 text-xs ${
-                activeTab === "dashboard"
-                  ? "text-foreground"
-                  : "text-muted-foreground"
-              }`}
-            >
-              Dashboard
-            </button>
-            <button
-              onClick={() => setActiveTab("propiedades")}
-              className={`flex flex-1 flex-col items-center gap-1 py-3 text-xs ${
-                activeTab === "propiedades"
-                  ? "text-foreground"
-                  : "text-muted-foreground"
-              }`}
-            >
-              Propiedades
-            </button>
-          </nav>
-        )}
-      </main>
+        <PropertyModal
+          open={modalOpen}
+          onOpenChange={setModalOpen}
+          property={editingProperty}
+          onSave={handleSave}
+        />
 
-      <PropertyModal
-        open={modalOpen}
-        onOpenChange={setModalOpen}
-        property={editingProperty}
-        onSave={handleSave}
-      />
-
-      <DeleteDialog
-        open={deleteDialogOpen}
-        onOpenChange={setDeleteDialogOpen}
-        property={deletingProperty}
-        onConfirm={handleConfirmDelete}
-      />
-    </div>
+        <DeleteDialog
+          open={deleteDialogOpen}
+          onOpenChange={setDeleteDialogOpen}
+          property={deletingProperty}
+          onConfirm={handleConfirmDelete}
+        />
+      </div>
     </AuthGuard>
   )
 }

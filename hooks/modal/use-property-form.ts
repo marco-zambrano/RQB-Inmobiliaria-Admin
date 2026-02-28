@@ -14,19 +14,43 @@ export const propertySchema = z.object({
     estado: z.enum(["disponible", "vendida", "negociación"]),
     ventaType: z.enum(["Al contado", "Transacción bancaria", "BIESS", "Fraccionado", "Promesa de compra-venta"]).optional(),
     propertyOwner: z.string().optional(),
-    areaTotales: z.number().nonnegative().optional(),
-    areaConstruccion: z.number().nonnegative().optional(),
-    habitaciones: z.number().nonnegative().optional(),
-    banos: z.number().nonnegative().optional(),
+    areaTotales: z.union([z.number(), z.string(), z.undefined()]).transform((val) => {
+        if (val === "" || val === undefined) return undefined;
+        const num = Number(val);
+        return isNaN(num) ? undefined : num;
+    }).refine((val) => val === undefined || val >= 0, "El valor debe ser mayor o igual a 0").optional(),
+    areaConstruccion: z.union([z.number(), z.string(), z.undefined()]).transform((val) => {
+        if (val === "" || val === undefined) return undefined;
+        const num = Number(val);
+        return isNaN(num) ? undefined : num;
+    }).refine((val) => val === undefined || val >= 0, "El valor debe ser mayor o igual a 0").optional(),
+    habitaciones: z.union([z.number(), z.string(), z.undefined()]).transform((val) => {
+        if (val === "" || val === undefined) return undefined;
+        const num = Number(val);
+        return isNaN(num) ? undefined : num;
+    }).refine((val) => val === undefined || val >= 0, "El valor debe ser mayor o igual a 0").optional(),
+    banos: z.union([z.number(), z.string(), z.undefined()]).transform((val) => {
+        if (val === "" || val === undefined) return undefined;
+        const num = Number(val);
+        return isNaN(num) ? undefined : num;
+    }).refine((val) => val === undefined || val >= 0, "El valor debe ser mayor o igual a 0").optional(),
     antiguedadEsNuevo: z.boolean(),
-    antiguedadAnos: z.number().nonnegative().optional(),
+    antiguedadAnos: z.union([z.number(), z.string(), z.undefined()]).transform((val) => {
+        if (val === "" || val === undefined) return undefined;
+        const num = Number(val);
+        return isNaN(num) ? undefined : num;
+    }).refine((val) => val === undefined || val >= 0, "El valor debe ser mayor o igual a 0").optional(),
     descripcion: z.string().optional(),
     garaje: z.boolean(),
     piscina: z.boolean(),
     patio: z.boolean(),
     seguridadPrivada: z.boolean(),
     balcon: z.boolean(),
-    numeroPisos: z.number().nonnegative().optional(),
+    numeroPisos: z.union([z.number(), z.string(), z.undefined()]).transform((val) => {
+        if (val === "" || val === undefined) return undefined;
+        const num = Number(val);
+        return isNaN(num) ? undefined : num;
+    }).refine((val) => val === undefined || val >= 0, "El valor debe ser mayor o igual a 0").optional(),
     mapsUrl: z.string().optional(),
     imagenes: z.array(z.string()),
 })
