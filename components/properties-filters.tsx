@@ -38,18 +38,18 @@ export function PropertiesFilters({
   const hasFilters = searchQuery || selectedProvincia !== "all" || selectedEstado !== "all" || selectedTipo !== "all"
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="relative">
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+      <div className="relative flex-1">
         <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           placeholder="Buscar por titulo..."
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
-          className="pl-9 bg-card w-full"
+          className="pl-9 bg-card"
         />
       </div>
 
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2 sm:flex-nowrap sm:gap-2">
         <Select value={selectedProvincia} onValueChange={onProvinciaChange}>
           <SelectTrigger className="w-full sm:w-[140px] bg-card cursor-pointer">
             <SelectValue placeholder="Provincia" />
@@ -97,7 +97,7 @@ export function PropertiesFilters({
             className="w-full sm:w-auto text-muted-foreground hover:text-foreground cursor-pointer"
           >
             <X className="size-4" />
-            <span className="hidden sm:inline ml-1">Limpiar</span>
+            <span className="sm:inline ml-1">Limpiar</span>
           </Button>
         )}
       </div>
