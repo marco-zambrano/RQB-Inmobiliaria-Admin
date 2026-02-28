@@ -55,7 +55,7 @@ export function PropertiesFilters({
             <SelectValue placeholder="Provincia" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Todas</SelectItem>
+            <SelectItem value="all">Provincia</SelectItem>
             {Object.keys(provinciasEcuador).map((provincia) => (
               <SelectItem key={provincia} value={provincia}>
                 {provincia}
@@ -69,7 +69,7 @@ export function PropertiesFilters({
             <SelectValue placeholder="Estado" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Todos</SelectItem>
+            <SelectItem value="all">Estado</SelectItem>
             <SelectItem value="disponible">Disponible</SelectItem>
             <SelectItem value="vendida">Vendida</SelectItem>
             <SelectItem value="negociación">Negociación</SelectItem>
@@ -81,7 +81,7 @@ export function PropertiesFilters({
             <SelectValue placeholder="Tipo" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Todos</SelectItem>
+            <SelectItem value="all">Tipo</SelectItem>
             <SelectItem value="casa">Casa</SelectItem>
             <SelectItem value="apartamento">Apto</SelectItem>
             <SelectItem value="local">Local</SelectItem>
