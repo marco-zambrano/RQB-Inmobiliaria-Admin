@@ -190,14 +190,14 @@ export function PropertiesCards({ properties, onEdit, onDelete }: PropertiesTabl
   }
 
   return (
-    <div className="grid grid-cols-1 gap-4">
+    <div className="grid grid-cols-1 gap-3 sm:gap-4">
       {properties.map((property) => (
         <div
           key={property.id}
-          className="rounded-lg border border-border bg-card p-4"
+          className="rounded-lg border border-border bg-card p-3 sm:p-4"
         >
-          <div className="flex gap-4">
-            <div className="relative h-20 w-24 shrink-0 overflow-hidden rounded-md">
+          <div className="flex gap-3 sm:gap-4">
+            <div className="relative h-16 w-20 sm:h-20 sm:w-24 shrink-0 overflow-hidden rounded-md">
               <Image
                 src={property.images?.[0]?.image_url || "/images/casa-moderna.jpg"}
                 alt={property.title}
@@ -205,10 +205,10 @@ export function PropertiesCards({ properties, onEdit, onDelete }: PropertiesTabl
                 className="object-cover"
               />
             </div>
-            <div className="flex flex-1 flex-col gap-1.5">
-              <h3 className="text-sm font-medium text-foreground">{property.title}</h3>
-              <p className="text-sm text-foreground">{formatPrice(property.price)}</p>
-              <div className="flex items-center gap-2">
+            <div className="flex flex-1 flex-col gap-1 sm:gap-1.5">
+              <h3 className="text-xs sm:text-sm font-medium text-foreground line-clamp-1">{property.title}</h3>
+              <p className="text-xs sm:text-sm text-foreground">{formatPrice(property.price)}</p>
+              <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-xs text-muted-foreground">{property.province}</span>
                 <StatusBadge status={property.status} />
               </div>
@@ -217,13 +217,13 @@ export function PropertiesCards({ properties, onEdit, onDelete }: PropertiesTabl
                 <Heart className="size-3 text-red-500 fill-none" />
               </div>
               {property.venta_type && (
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-muted-foreground truncate">
                   Venta: {property.venta_type}
                 </p>
               )}
               {property.property_owner && (
-                <p className="text-xs text-muted-foreground">
-                  Propietario: {property.property_owner}
+                <p className="text-xs text-muted-foreground truncate">
+                  Prop: {property.property_owner}
                 </p>
               )}
               <p className="text-xs text-muted-foreground">
@@ -231,24 +231,24 @@ export function PropertiesCards({ properties, onEdit, onDelete }: PropertiesTabl
               </p>
             </div>
           </div>
-          <div className="mt-3 flex items-center justify-end gap-1 border-t border-border pt-3">
+          <div className="mt-3 flex items-center justify-end gap-1 border-t border-border pt-2 sm:pt-3">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => onEdit(property)}
-              className="text-muted-foreground hover:text-foreground"
+              className="text-muted-foreground hover:text-foreground px-2 py-1 text-xs"
             >
-              <Pencil className="size-4" />
-              Editar
+              <Pencil className="size-3 sm:size-4" />
+              <span className="hidden sm:inline ml-1">Editar</span>
             </Button>
             <Button
               variant="ghost"
               size="sm"
               onClick={() => onDelete(property)}
-              className="text-muted-foreground hover:text-destructive"
+              className="text-muted-foreground hover:text-destructive px-2 py-1 text-xs"
             >
-              <Trash2 className="size-4" />
-              Eliminar
+              <Trash2 className="size-3 sm:size-4" />
+              <span className="hidden sm:inline ml-1">Eliminar</span>
             </Button>
           </div>
         </div>

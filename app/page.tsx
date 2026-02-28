@@ -49,32 +49,33 @@ export default function AdminPage() {
       <div className="min-h-screen bg-background">
         {/* Header */}
         <header className="border-b border-border bg-card">
-          <div className="flex items-center justify-between px-8 py-4">
-            <div className="flex items-center gap-2.5">
-              <div className="flex size-8 items-center justify-center rounded-md bg-accent">
-                <span className="text-sm font-bold text-accent-foreground">RQB</span>
+          <div className="flex items-center justify-between px-4 sm:px-8 py-3 sm:py-4">
+            <div className="flex items-center gap-2 sm:gap-2.5">
+              <div className="flex size-6 sm:size-8 items-center justify-center rounded-md bg-accent">
+                <span className="text-xs sm:text-sm font-bold text-accent-foreground">RQB</span>
               </div>
-              <h1 className="text-xl font-bold text-foreground">Panel de Administración</h1>
+              <h1 className="text-sm sm:text-xl font-bold text-foreground">Panel de Administración</h1>
             </div>
             <Button
               onClick={handleSignOut}
               variant="outline"
-              className="flex items-center gap-2 cursor-pointer"
+              size="sm"
+              className="flex items-center gap-2 cursor-pointer px-2 sm:px-4"
             >
               <LogOut className="size-4" />
-              Cerrar sesión
+              <span className="hidden sm:inline">Cerrar sesión</span>
             </Button>
           </div>
         </header>
 
         {/* Main Content */}
-        <main className="px-8 py-8">
+        <main className="px-4 sm:px-8 py-3 sm:py-6">
           <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-foreground">
                 Gestion de Propiedades
               </h1>
-              <Button onClick={handleAdd} className="gap-2 cursor-pointer">
+              <Button onClick={handleAdd} className="gap-2 cursor-pointer w-full sm:w-auto">
                 <Plus className="size-4" />
                 Agregar nueva propiedad
               </Button>

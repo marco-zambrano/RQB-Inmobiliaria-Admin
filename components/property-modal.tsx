@@ -124,9 +124,9 @@ export function PropertyModal({ open, onOpenChange, property, onSave }: Property
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl bg-card">
+      <DialogContent className="max-h-[90vh] overflow-y-auto w-[95vw] sm:max-w-2xl bg-card max-w-[95vw]">
         <DialogHeader>
-          <DialogTitle className="text-xl font-bold text-foreground">
+          <DialogTitle className="text-lg sm:text-xl font-bold text-foreground pr-8">
             {property ? `Editar Propiedad --> ${property.title}` : "Agregar Nueva Propiedad"}
           </DialogTitle>
         </DialogHeader>
