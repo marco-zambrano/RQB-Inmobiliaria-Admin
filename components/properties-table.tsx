@@ -1,7 +1,7 @@
 "use client"
 
 import Image from "next/image"
-import { Pencil, Trash2 } from "lucide-react"
+import { Pencil, Trash2, Heart } from "lucide-react"
 import {
   Table,
   TableBody,
@@ -79,6 +79,7 @@ export function PropertiesTable({ properties, onEdit, onDelete }: PropertiesTabl
             <TableHead className="text-muted-foreground font-normal text-sm">Propietario</TableHead>
             <TableHead className="text-muted-foreground font-normal text-sm">Provincia</TableHead>
             <TableHead className="text-muted-foreground font-normal text-sm">Estado</TableHead>
+            <TableHead className="text-muted-foreground font-normal text-sm">Nivel de Interés</TableHead>
             <TableHead className="text-muted-foreground font-normal text-sm">Fecha</TableHead>
             <TableHead className="text-muted-foreground font-normal text-sm">Fecha Vendida</TableHead>
             <TableHead className="text-right text-muted-foreground font-normal text-sm">Acciones</TableHead>
@@ -131,6 +132,13 @@ export function PropertiesTable({ properties, onEdit, onDelete }: PropertiesTabl
               {/* Status */}
               <TableCell>
                 <StatusBadge status={property.status} />
+              </TableCell>
+              {/* Interest Level */}
+              <TableCell>
+                <div className="flex items-center justify-center gap-1">
+                  <span className="text-red-500 font-medium">{property.interest_level}</span>
+                  <Heart className="size-4 text-red-500 fill-none" />
+                </div>
               </TableCell>
               {/* Created At */}
               <TableCell className="text-foreground">
@@ -203,6 +211,10 @@ export function PropertiesCards({ properties, onEdit, onDelete }: PropertiesTabl
               <div className="flex items-center gap-2">
                 <span className="text-xs text-muted-foreground">{property.province}</span>
                 <StatusBadge status={property.status} />
+              </div>
+              <div className="flex items-center justify-center gap-1">
+                <span className="text-xs text-red-500 font-medium">{property.interest_level}</span>
+                <Heart className="size-3 text-red-500 fill-none" />
               </div>
               {property.venta_type && (
                 <p className="text-xs text-muted-foreground">
