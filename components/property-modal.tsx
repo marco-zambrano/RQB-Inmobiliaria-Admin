@@ -49,7 +49,6 @@ export function PropertyModal({ open, onOpenChange, property, onSave }: Property
   const onSubmit = async (formData: any) => {
     if (isSaving) return
     setIsSaving(true)
-    onOpenChange(false)
 
     try {
       const features: string[] = []
@@ -111,7 +110,8 @@ export function PropertyModal({ open, onOpenChange, property, onSave }: Property
         })),
       }
 
-      onSave(propertyData, videosSupabase)
+      await onSave(propertyData, videosSupabase)
+      onOpenChange(false)
 
     } catch (err) {
       console.error("Save error:", err)
