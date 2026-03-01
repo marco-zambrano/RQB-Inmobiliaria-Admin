@@ -15,6 +15,7 @@ import AuthGuard from "@/components/auth-guard"
 import { useProperties } from "@/hooks/use-properties"
 import { usePropertyFilters } from "@/hooks/use-property-filters"
 import { usePropertyActions } from "@/hooks/use-property-actions"
+import { PropertiesSkeleton } from "@/components/properties-skeleton"
 
 export default function AdminPage() {
   const router = useRouter()
@@ -93,7 +94,9 @@ export default function AdminPage() {
               onClearFilters={handleClearFilters}
             />
 
-            {isMobile ? (
+            {loading ? (
+              <PropertiesSkeleton isMobile={isMobile} />
+            ) : isMobile ? (
               <PropertiesCards
                 properties={filteredProperties}
                 onEdit={handleEdit}
