@@ -274,22 +274,22 @@ export function PropertyModal({ open, onOpenChange, property, onSave }: Property
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                 <div className="flex flex-col gap-1.5">
                   <Label htmlFor="areaTotales" className="font-semibold text-foreground">m² totales</Label>
-                  <Input id="areaTotales" type="number" {...register("areaTotales", { valueAsNumber: true })} className="bg-card" />
+                  <Input id="areaTotales" type="number" {...register("areaTotales")} className="bg-card" />
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <Label htmlFor="areaConstruccion" className="font-semibold text-foreground">m² construcción</Label>
-                  <Input id="areaConstruccion" type="number" {...register("areaConstruccion", { valueAsNumber: true })} className="bg-card" />
+                  <Input id="areaConstruccion" type="number" {...register("areaConstruccion")} className="bg-card" />
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <Label htmlFor="habitaciones" className="font-semibold text-foreground">Habitaciones</Label>
-                  <Input id="habitaciones" type="number" {...register("habitaciones", { valueAsNumber: true })} className="bg-card" />
+                  <Input id="habitaciones" type="number" {...register("habitaciones")} className="bg-card" />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="flex flex-col gap-1.5">
                   <Label htmlFor="banos" className="font-semibold text-foreground">Baños</Label>
-                  <Input id="banos" type="number" {...register("banos", { valueAsNumber: true })} className="bg-card" />
+                  <Input id="banos" type="number" {...register("banos")} className="bg-card" />
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <Label className="font-semibold text-foreground">Antigüedad</Label>
@@ -305,7 +305,7 @@ export function PropertyModal({ open, onOpenChange, property, onSave }: Property
                   </div>
                   {!antiguedadEsNuevo && (
                     <div className="flex items-center gap-2 mt-2">
-                      <Input type="number" {...register("antiguedadAnos", { valueAsNumber: true })} placeholder="Años" className="bg-card" />
+                      <Input type="number" {...register("antiguedadAnos")} placeholder="Años" className="bg-card" />
                       <span className="text-sm text-muted-foreground">años</span>
                     </div>
                   )}
@@ -353,7 +353,7 @@ export function PropertyModal({ open, onOpenChange, property, onSave }: Property
             <h3 className="text-lg font-bold text-foreground mb-4">Detalles de Construcción</h3>
             <div className="flex items-center gap-2">
               <Label htmlFor="numeroPisos" className="font-semibold text-foreground">Número de pisos</Label>
-              <Input id="numeroPisos" type="number" {...register("numeroPisos", { valueAsNumber: true })} placeholder="0, 1, 2, 3..." className="bg-card w-24" />
+              <Input id="numeroPisos" type="number" {...register("numeroPisos")} placeholder="0, 1, 2, 3..." className="bg-card w-24" />
             </div>
           </div>
 
@@ -370,9 +370,9 @@ export function PropertyModal({ open, onOpenChange, property, onSave }: Property
           <div>
             <h3 className="text-lg font-bold text-foreground mb-4">Imágenes</h3>
 
-            {(imagenes.length > 0 || media.pendingFiles.length > 0) && (
+            {((imagenes?.length ?? 0) > 0 || media.pendingFiles.length > 0) && (
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
-                {imagenes.map((imagen, idx) => (
+                {imagenes?.map((imagen, idx) => (
                   <div key={`exist-${idx}-${imagen.slice(-20)}`} className="relative group">
                     <img src={imagen} alt={`Preview ${idx + 1}`} className="w-full h-24 object-cover rounded-md bg-muted" />
                     <button
@@ -382,7 +382,7 @@ export function PropertyModal({ open, onOpenChange, property, onSave }: Property
                         if (!confirm("¿Deseas eliminar esta imagen?")) return
                         try {
                           await deleteImageFromSupabase(imagen)
-                          setValue("imagenes", imagenes.filter((_, i) => i !== idx))
+                          setValue("imagenes", (imagenes ?? []).filter((_, i) => i !== idx))
                         } catch (error) {
                           console.error("Error deleting image:", error)
                           alert("Error al eliminar la imagen. Por favor intenta de nuevo.")

@@ -7,11 +7,11 @@ import type { Property } from "@/lib/types"
 export const propertySchema = z.object({
     title: z.string().min(3, "El nombre debe tener al menos 3 caracteres"),
     precio: z.number().min(0, "El precio debe ser mayor a 0"),
-    direccion: z.string().optional(),
-    provincia: z.string().min(1, "Selecciona una provincia"),
-    ciudad: z.string().min(1, "Selecciona una ciudad"),
-    tipo: z.enum(["local", "apartamento", "casa", "terreno", "casa rentera"]),
-    estado: z.enum(["disponible", "vendida", "negociación"]),
+    direccion: z.string().min(1, "La dirección es requerida"),
+    provincia: z.string().optional(),
+    ciudad: z.string().optional(),
+    tipo: z.enum(["local", "apartamento", "casa", "terreno", "casa rentera"]).optional(),
+    estado: z.enum(["disponible", "vendida", "negociación"]).optional(),
     ventaType: z.enum(["Al contado", "Transacción bancaria", "BIESS", "Fraccionado", "Promesa de compra-venta"]).optional(),
     propertyOwner: z.string().optional(),
     areaTotales: z.union([z.number(), z.string(), z.undefined()]).transform((val) => {
@@ -34,25 +34,25 @@ export const propertySchema = z.object({
         const num = Number(val);
         return isNaN(num) ? undefined : num;
     }).refine((val) => val === undefined || val >= 0, "El valor debe ser mayor o igual a 0").optional(),
-    antiguedadEsNuevo: z.boolean(),
+    antiguedadEsNuevo: z.boolean().optional(),
     antiguedadAnos: z.union([z.number(), z.string(), z.undefined()]).transform((val) => {
         if (val === "" || val === undefined) return undefined;
         const num = Number(val);
         return isNaN(num) ? undefined : num;
     }).refine((val) => val === undefined || val >= 0, "El valor debe ser mayor o igual a 0").optional(),
     descripcion: z.string().optional(),
-    garaje: z.boolean(),
-    piscina: z.boolean(),
-    patio: z.boolean(),
-    seguridadPrivada: z.boolean(),
-    balcon: z.boolean(),
+    garaje: z.boolean().optional(),
+    piscina: z.boolean().optional(),
+    patio: z.boolean().optional(),
+    seguridadPrivada: z.boolean().optional(),
+    balcon: z.boolean().optional(),
     numeroPisos: z.union([z.number(), z.string(), z.undefined()]).transform((val) => {
         if (val === "" || val === undefined) return undefined;
         const num = Number(val);
         return isNaN(num) ? undefined : num;
     }).refine((val) => val === undefined || val >= 0, "El valor debe ser mayor o igual a 0").optional(),
     mapsUrl: z.string().optional(),
-    imagenes: z.array(z.string()),
+    imagenes: z.array(z.string()).optional(),
 })
 
 export type PropertyFormData = z.infer<typeof propertySchema>
