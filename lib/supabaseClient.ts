@@ -41,8 +41,8 @@ export async function uploadImageToSupabase(file: File): Promise<string> {
       throw new Error(`Error uploading file: ${error.message}`);
     }
 
-    // Usar URL firmada (10 años) - funciona con buckets privados; las públicas fallan si el bucket no es público
-    const EXPIRES_IN = 10 * 365 * 24 * 60 * 60; // 10 años en segundos
+    // Usar URL firmada (1 año) - funciona con buckets privados; las públicas fallan si el bucket no es público
+    const EXPIRES_IN = 365 * 24 * 60 * 60; // 1 año en segundos
     const { data: signedData, error: signedError } = await supabase.storage
       .from(STORAGE_BUCKET)
       .createSignedUrl(data.path, EXPIRES_IN);
@@ -91,8 +91,8 @@ export async function uploadVideoToSupabase(file: File): Promise<string> {
       throw new Error(`Error uploading video: ${error.message}`);
     }
 
-    // Usar URL firmada (10 años)
-    const EXPIRES_IN = 10 * 365 * 24 * 60 * 60; // 10 años en segundos
+    // Usar URL firmada (1 año)
+    const EXPIRES_IN = 365 * 24 * 60 * 60; // 1 año en segundos
     const { data: signedData, error: signedError } = await supabase.storage
       .from(STORAGE_BUCKET)
       .createSignedUrl(data.path, EXPIRES_IN);
