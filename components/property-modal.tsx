@@ -52,11 +52,11 @@ export function PropertyModal({ open, onOpenChange, property, onSave }: Property
 
     try {
       const features: string[] = []
-      if (formData.garaje) features.push("garaje")
-      if (formData.piscina) features.push("piscina")
-      if (formData.patio) features.push("patio")
-      if (formData.seguridadPrivada) features.push("seguridadPrivada")
-      if (formData.balcon) features.push("balcon")
+      if (formData.garaje) features.push("Garaje")
+      if (formData.piscina) features.push("Piscina")
+      if (formData.patio) features.push("Patio")
+      if (formData.seguridadPrivada) features.push("Seguridad Privada")
+      if (formData.balcon) features.push("Balcon")
       if (formData.numeroPisos > 0)
         features.push(formData.numeroPisos === 1 ? "1 piso" : `${formData.numeroPisos} pisos`)
 
