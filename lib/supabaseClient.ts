@@ -132,9 +132,7 @@ export function extractFilePathFromStorageUrl(url: string): string {
 
 export async function deleteImageFromSupabase(imageUrl: string): Promise<void> {
   try {
-    console.log("Iniciando eliminación de imagen:", imageUrl);
     const filePath = extractFilePathFromStorageUrl(imageUrl);
-    console.log("Path extraído del storage:", filePath);
 
     const { error, data } = await supabase.storage
       .from(STORAGE_BUCKET)
@@ -144,7 +142,6 @@ export async function deleteImageFromSupabase(imageUrl: string): Promise<void> {
       console.error("Error de Supabase al eliminar archivo:", error);
       throw new Error(`Error deleting file from storage: ${error.message}`);
     }
-    console.log("Archivo eliminado exitosamente del storage:", data);
   } catch (error) {
     console.error("Error completo al eliminar imagen:", error);
     throw error;
@@ -153,9 +150,7 @@ export async function deleteImageFromSupabase(imageUrl: string): Promise<void> {
 
 export async function deleteVideoFromSupabase(videoUrl: string): Promise<void> {
   try {
-    console.log("Iniciando eliminación de video:", videoUrl);
     const filePath = extractFilePathFromStorageUrl(videoUrl);
-    console.log("Path extraído del storage:", filePath);
 
     const { error, data } = await supabase.storage
       .from(STORAGE_BUCKET)
@@ -166,7 +161,6 @@ export async function deleteVideoFromSupabase(videoUrl: string): Promise<void> {
       throw new Error(`Error deleting video from storage: ${error.message}`);
     }
 
-    console.log("Video eliminado exitosamente del storage:", data);
   } catch (error) {
     console.error("Error completo al eliminar video:", error);
     throw error;
