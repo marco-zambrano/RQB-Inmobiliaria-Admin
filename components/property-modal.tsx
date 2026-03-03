@@ -166,7 +166,7 @@ export function PropertyModal({ open, onOpenChange, property, onSave }: Property
                   name="ventaType"
                   control={control}
                   render={({ field }) => (
-                    <Select value={field.value} onValueChange={field.onChange}>
+                    <Select value={field.value || ""} onValueChange={field.onChange}>
                       <SelectTrigger className="bg-card">
                         <SelectValue placeholder="Seleccionar tipo de venta" />
                       </SelectTrigger>

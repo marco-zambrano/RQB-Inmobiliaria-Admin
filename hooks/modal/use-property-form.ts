@@ -12,7 +12,7 @@ export const propertySchema = z.object({
     ciudad: z.string().optional(),
     tipo: z.enum(["local", "apartamento", "casa", "terreno", "casa rentera"]).optional(),
     estado: z.enum(["disponible", "vendida", "negociación"]).optional(),
-    ventaType: z.enum(["Al contado", "Transacción bancaria", "BIESS", "Fraccionado", "Promesa de compra-venta"]).optional(),
+    ventaType: z.enum(["Al contado", "Transacción bancaria", "BIESS", "Fraccionado", "Promesa de compra-venta"]).optional().nullable(),
     propertyOwner: z.string().optional(),
     areaTotales: z.union([z.number(), z.string(), z.undefined()]).transform((val) => {
         if (val === "" || val === undefined) return undefined;
@@ -59,7 +59,7 @@ export type PropertyFormData = z.infer<typeof propertySchema>
 
 const emptyDefaults: PropertyFormData = {
     title: "", precio: undefined as any, direccion: "", provincia: "",
-    ciudad: "", tipo: "apartamento", estado: "disponible", ventaType: undefined,
+    ciudad: "", tipo: "apartamento", estado: "disponible", ventaType: null,
     propertyOwner: undefined, areaTotales: undefined, areaConstruccion: undefined,
     habitaciones: undefined, banos: undefined, antiguedadEsNuevo: false,
     antiguedadAnos: undefined, descripcion: "", garaje: false, piscina: false,
