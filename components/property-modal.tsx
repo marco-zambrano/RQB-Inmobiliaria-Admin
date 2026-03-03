@@ -79,6 +79,7 @@ export function PropertyModal({ open, onOpenChange, property, onSave }: Property
       ])
 
       await media.deleteMarkedVideos()
+      await media.deleteMarkedImages()
 
       const urlsExistentes = formData.imagenes.filter((url: string) => !url.startsWith("blob:"))
       const urlsSupabase = [...urlsExistentes, ...urlsNuevas]
@@ -372,28 +373,33 @@ export function PropertyModal({ open, onOpenChange, property, onSave }: Property
 
             {((imagenes?.length ?? 0) > 0 || media.pendingFiles.length > 0) && (
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
-                {imagenes?.map((imagen, idx) => (
-                  <div key={`exist-${idx}-${imagen.slice(-20)}`} className="relative group">
-                    <img src={imagen} alt={`Preview ${idx + 1}`} className="w-full h-24 object-cover rounded-md bg-muted" />
-                    <button
-                      type="button"
-                      onClick={async (e) => {
-                        e.preventDefault()
-                        if (!confirm("¿Deseas eliminar esta imagen?")) return
-                        try {
-                          await deleteImageFromSupabase(imagen)
-                          setValue("imagenes", (imagenes ?? []).filter((_, i) => i !== idx))
-                        } catch (error) {
-                          console.error("Error deleting image:", error)
-                          alert("Error al eliminar la imagen. Por favor intenta de nuevo.")
-                        }
-                      }}
-                      className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))}
+                {imagenes?.map((imagen, idx) => {
+                  const isMarkedForDeletion = media.imagesToDelete.includes(imagen)
+                  if (isMarkedForDeletion) return null
+                  
+                  return (
+                    <div key={`exist-${idx}-${imagen.slice(-20)}`} className="relative group">
+                      <img src={imagen} alt={`Preview ${idx + 1}`} className="w-full h-24 object-cover rounded-md bg-muted" />
+                      <button
+                        type="button"
+                        onClick={async (e) => {
+                          e.preventDefault()
+                          if (!confirm("¿Deseas eliminar esta imagen?")) return
+                          try {
+                            media.markImageForDeletion(imagen, idx)
+                            setValue("imagenes", (imagenes ?? []).filter((_, i) => i !== idx))
+                          } catch (error) {
+                            console.error("Error marking image for deletion:", error)
+                            alert("Error al eliminar la imagen. Por favor intenta de nuevo.")
+                          }
+                        }}
+                        className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )
+                })}
                 {media.pendingFiles.map((p) => (
                   <div key={p.id} className="relative group">
                     <img src={p.url} alt="Nueva imagen" className="w-full h-24 object-cover rounded-md bg-muted" />

@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { uploadImageToSupabase, uploadVideoToSupabase, deleteVideoFromSupabase, deleteVideoFromDatabase } from "@/lib/supabaseClient"
+import { uploadImageToSupabase, uploadVideoToSupabase, deleteVideoFromSupabase, deleteVideoFromDatabase, deleteImageFromSupabase } from "@/lib/supabaseClient"
 import type { Property } from "@/lib/types"
 
 type PendingFile = { id: string; url: string; file: File }
@@ -9,11 +9,13 @@ export function usePropertyMedia(property: Property | null | undefined) {
     const [pendingVideos, setPendingVideos] = useState<PendingFile[]>([])
     const [existingVideos, setExistingVideos] = useState<string[]>([])
     const [videosToDelete, setVideosToDelete] = useState<string[]>([])
+    const [imagesToDelete, setImagesToDelete] = useState<string[]>([])
 
     function initMedia() {
         setPendingFiles((prev) => { prev.forEach((p) => URL.revokeObjectURL(p.url)); return [] })
         setPendingVideos((prev) => { prev.forEach((p) => URL.revokeObjectURL(p.url)); return [] })
         setVideosToDelete([])
+        setImagesToDelete([])
         setExistingVideos((property?.videos ?? []).map((v) => v.video_url))
     }
 
@@ -55,6 +57,10 @@ export function usePropertyMedia(property: Property | null | undefined) {
         })
     }
 
+    function markImageForDeletion(imageUrl: string, idx: number) {
+        setImagesToDelete((prev) => [...prev, imageUrl])
+    }
+
     function markVideoForDeletion(videoUrl: string, idx: number) {
         setVideosToDelete((prev) => [...prev, videoUrl])
         setExistingVideos((prev) => prev.filter((_, i) => i !== idx))
@@ -91,15 +97,29 @@ export function usePropertyMedia(property: Property | null | undefined) {
         )
     }
 
+    async function deleteMarkedImages() {
+        if (!imagesToDelete.length) return
+        await Promise.all(
+            imagesToDelete.map(async (imageUrl) => {
+                try {
+                    await deleteImageFromSupabase(imageUrl)
+                } catch (err) {
+                    console.error("Error eliminando imagen:", imageUrl, err)
+                }
+            })
+        )
+    }
+
     function reset() {
         setPendingFiles([])
         setPendingVideos([])
         setVideosToDelete([])
+        setImagesToDelete([])
     }
 
     return {
-        pendingFiles, pendingVideos, existingVideos, videosToDelete,
+        pendingFiles, pendingVideos, existingVideos, videosToDelete, imagesToDelete,
         initMedia, addImages, removeImage, addVideos, removeVideo,
-        markVideoForDeletion, uploadAll, deleteMarkedVideos, reset,
+        markImageForDeletion, markVideoForDeletion, uploadAll, deleteMarkedVideos, deleteMarkedImages, reset,
     }
 }
