@@ -16,6 +16,7 @@ import { MapPreview } from "./map-preview"
 import { deleteImageFromSupabase } from "@/lib/supabaseClient"
 import { usePropertyForm } from "@/hooks/modal/use-property-form"
 import { usePropertyMedia } from "@/hooks/modal/use-property-media"
+import { DeleteImageDialog } from "./delete-image-dialog"
 
 interface PropertyModalProps {
   open: boolean
@@ -26,6 +27,8 @@ interface PropertyModalProps {
 
 export function PropertyModal({ open, onOpenChange, property, onSave }: PropertyModalProps) {
   const [isSaving, setIsSaving] = useState(false)
+  const [deleteImageDialogOpen, setDeleteImageDialogOpen] = useState(false)
+  const [imageToDelete, setImageToDelete] = useState<{ url: string; index: number } | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const videoInputRef = useRef<HTMLInputElement>(null)
 
@@ -47,6 +50,25 @@ export function PropertyModal({ open, onOpenChange, property, onSave }: Property
   useEffect(() => {
     if (open) media.initMedia()
   }, [property, open])
+
+  const handleDeleteImageClick = (imageUrl: string, index: number) => {
+    setImageToDelete({ url: imageUrl, index })
+    setDeleteImageDialogOpen(true)
+  }
+
+  const confirmDeleteImage = () => {
+    if (imageToDelete) {
+      try {
+        media.markImageForDeletion(imageToDelete.url, imageToDelete.index)
+        setValue("imagenes", (imagenes ?? []).filter((_, i) => i !== imageToDelete.index))
+      } catch (error) {
+        console.error("Error marking image for deletion:", error)
+        alert("Error al eliminar la imagen. Por favor intenta de nuevo.")
+      }
+    }
+    setDeleteImageDialogOpen(false)
+    setImageToDelete(null)
+  }
 
   const onSubmit = async (formData: any) => {
     console.log("onSubmit called", { isSaving, formData })
@@ -385,16 +407,9 @@ export function PropertyModal({ open, onOpenChange, property, onSave }: Property
                       <img src={imagen} alt={`Preview ${idx + 1}`} className="w-full h-24 object-cover rounded-md bg-muted" />
                       <button
                         type="button"
-                        onClick={async (e) => {
+                        onClick={(e) => {
                           e.preventDefault()
-                          if (!confirm("¿Deseas eliminar esta imagen?")) return
-                          try {
-                            media.markImageForDeletion(imagen, idx)
-                            setValue("imagenes", (imagenes ?? []).filter((_, i) => i !== idx))
-                          } catch (error) {
-                            console.error("Error marking image for deletion:", error)
-                            alert("Error al eliminar la imagen. Por favor intenta de nuevo.")
-                          }
+                          handleDeleteImageClick(imagen, idx)
                         }}
                         className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
                       >
@@ -536,6 +551,12 @@ export function PropertyModal({ open, onOpenChange, property, onSave }: Property
 
         </form>
       </DialogContent>
+      
+      <DeleteImageDialog
+        open={deleteImageDialogOpen}
+        onOpenChange={setDeleteImageDialogOpen}
+        onConfirm={confirmDeleteImage}
+      />
     </Dialog>
   )
 }
