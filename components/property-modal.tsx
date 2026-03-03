@@ -17,6 +17,7 @@ import { deleteImageFromSupabase } from "@/lib/supabaseClient"
 import { usePropertyForm } from "@/hooks/modal/use-property-form"
 import { usePropertyMedia } from "@/hooks/modal/use-property-media"
 import { DeleteImageDialog } from "./delete-image-dialog"
+import { DeleteVideoDialog } from "./delete-video-dialog"
 
 interface PropertyModalProps {
   open: boolean
@@ -29,6 +30,8 @@ export function PropertyModal({ open, onOpenChange, property, onSave }: Property
   const [isSaving, setIsSaving] = useState(false)
   const [deleteImageDialogOpen, setDeleteImageDialogOpen] = useState(false)
   const [imageToDelete, setImageToDelete] = useState<{ url: string; index: number } | null>(null)
+  const [deleteVideoDialogOpen, setDeleteVideoDialogOpen] = useState(false)
+  const [videoToDelete, setVideoToDelete] = useState<{ url: string; index: number } | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const videoInputRef = useRef<HTMLInputElement>(null)
 
@@ -68,6 +71,24 @@ export function PropertyModal({ open, onOpenChange, property, onSave }: Property
     }
     setDeleteImageDialogOpen(false)
     setImageToDelete(null)
+  }
+
+  const handleDeleteVideoClick = (videoUrl: string, index: number) => {
+    setVideoToDelete({ url: videoUrl, index })
+    setDeleteVideoDialogOpen(true)
+  }
+
+  const confirmDeleteVideo = () => {
+    if (videoToDelete) {
+      try {
+        media.markVideoForDeletion(videoToDelete.url, videoToDelete.index)
+      } catch (error) {
+        console.error("Error marking video for deletion:", error)
+        alert("Error al eliminar el video. Por favor intenta de nuevo.")
+      }
+    }
+    setDeleteVideoDialogOpen(false)
+    setVideoToDelete(null)
   }
 
   const onSubmit = async (formData: any) => {
@@ -474,8 +495,7 @@ export function PropertyModal({ open, onOpenChange, property, onSave }: Property
                       type="button"
                       onClick={(e) => {
                         e.preventDefault()
-                        if (!confirm("¿Deseas eliminar este video?")) return
-                        media.markVideoForDeletion(video, idx)
+                        handleDeleteVideoClick(video, idx)
                       }}
                       className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
                     >
@@ -556,6 +576,12 @@ export function PropertyModal({ open, onOpenChange, property, onSave }: Property
         open={deleteImageDialogOpen}
         onOpenChange={setDeleteImageDialogOpen}
         onConfirm={confirmDeleteImage}
+      />
+      
+      <DeleteVideoDialog
+        open={deleteVideoDialogOpen}
+        onOpenChange={setDeleteVideoDialogOpen}
+        onConfirm={confirmDeleteVideo}
       />
     </Dialog>
   )
