@@ -32,11 +32,13 @@ export function PropertyModal({ open, onOpenChange, property, onSave }: Property
   const form = usePropertyForm(property, open)
   const media = usePropertyMedia(property)
 
-  const { register, control, handleSubmit, watch, setValue, formState: { errors } } = form
+  const { register, control, handleSubmit, watch, setValue, formState: { errors, isValid, isSubmitting } } = form
   const provincia = watch("provincia")
   const antiguedadEsNuevo = watch("antiguedadEsNuevo")
   const imagenes = watch("imagenes")
   const mapsUrl = watch("mapsUrl")
+
+  console.log("Form state:", { errors, isValid, isSubmitting })
 
   const ciudadesDisponibles = provincia
     ? (provinciasEcuador[provincia as keyof typeof provinciasEcuador] || [])
@@ -47,6 +49,7 @@ export function PropertyModal({ open, onOpenChange, property, onSave }: Property
   }, [property, open])
 
   const onSubmit = async (formData: any) => {
+    console.log("onSubmit called", { isSaving, formData })
     if (isSaving) return
     setIsSaving(true)
 
@@ -520,6 +523,12 @@ export function PropertyModal({ open, onOpenChange, property, onSave }: Property
               type="submit"
               disabled={isSaving}
               className="flex-1 bg-foreground text-card hover:bg-foreground/90 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={(e) => {
+                console.log("Button clicked", { isValid, errors, isSaving })
+                if (!isValid) {
+                  console.log("Form is not valid", errors)
+                }
+              }}
             >
               {isSaving ? "Guardando..." : property ? "Guardar cambios" : "Guardar propiedad"}
             </Button>
