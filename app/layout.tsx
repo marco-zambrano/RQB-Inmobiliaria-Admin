@@ -16,6 +16,14 @@ const playfairDisplay = Playfair_Display({
 export const metadata: Metadata = {
   title: 'RQB 593 - Admin',
   description: 'Panel de administracion de propiedades inmobiliarias',
+  robots: {
+    index: false,
+    follow: false,
+    googleBot: {
+      index: false,
+      follow: false,
+    },
+  },
   icons: {
     icon: [
       {
